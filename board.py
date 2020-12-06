@@ -3,14 +3,10 @@ import numpy as np
 class Board():
 
     """
-    notes...
-        np.array
-        [0 , 0, 0,...1,0...0]
-        [a1.............h8]
-
+    Scratch notes
+        - square-centric representation
         - function to map fen <-> Board state
         - function to map from geometric <-> bitmap
-
         ---
 
         - function to bitwise AND all bitmaps
@@ -36,7 +32,7 @@ class Board():
 
         self.init_pieces()
 
-        self.bitboards = np.vstack(
+        self.occupied_squares_bitboard = np.vstack(
                     (self.white_rook_bitboard,
                     self.white_knight_bitboard,
                     self.white_bishop_bitboard,
@@ -51,15 +47,19 @@ class Board():
                     self.black_pawn_bitboard)
                     )
 
-    def update_bitboard_state(self):
+    def update_occupied_squares_bitboard(self):
         result = np.zeros(64, "byte")
-        for board in self.bitboards:
+        for board in self.occupied_squares_bitboard:
             result = np.bitwise_or(board, result, dtype="byte")
-        self.bitboards = result
+        self.occupied_squares_bitboard = result
 
-    def pretty_print_bitboard(self):
+    def get_empty_squares_bitboard(self):
+        return  1 - self.occupied_squares_bitboard
+
+    @staticmethod
+    def pretty_print_bitboard(bitboard):
         val = ''
-        for i, square in enumerate(self.bitboards):
+        for i, square in enumerate(bitboard):
             if not i % 8:
                 val += '\n'
             if square:
