@@ -1,4 +1,5 @@
 import numpy as np
+import string
 
 from constants import FileSquares as fsq, RankSquares as rsq
 
@@ -6,18 +7,26 @@ class Board():
 
     """
     Scratch notes
-        - square-centric representation
+        - bitboard square-centric representation
+
+        todo:
+        - should just store legal moves for every square given a move type bitboard (?)
+            on start so it is a table lookup for each diag, rank, file motion for sliding pieces
+            and one lookup for knights
         - function to map fen <-> Board state
         - function to map from geometric <-> bitmap
         ---
 
+        bitwise functions:
         - function to bitwise AND all bitmaps
-
         -> Piece captures (diff color AND),
             Illegal Moves (same color AND), etc.
     """
 
-    def __init__(self):
+    def __init__(self, board_size=8):
+
+        self.board_size = board_size # (64 squares)
+
         self.reset_bb()
 
         self.rank_1_bb = self.make_empty_bitmap()
@@ -78,25 +87,25 @@ class Board():
         self.bb = self.make_empty_bitmap()
 
     def plus1(self, square):
-        for i in range(square, 64, 1):
+        for i in range(square, self.board_size**2, 1):
             self.bb[i] = 1
             if not (i+1) % 8:
                 return
 
     def plus7(self, square):
-        for i in range(square, 64, 7):
+        for i in range(square, self.board_size**2, 7):
             self.bb[i] = 1
             if not (i+1) % 8:
                 return
 
     def plus8(self, square):
-        for i in range(square, 64, 8):
+        for i in range(square, self.board_size**2, 8):
             self.bb[i] = 1
             if not (i+1) % 8:
                 return
 
     def plus9(self, square):
-        for i in range(square, 64, 9):
+        for i in range(square, self.board_size**2, 9):
             self.bb[i] = 1
             if not (i+1) % 8:
                 return
@@ -150,7 +159,7 @@ class Board():
         attacks = self.make_empty_bitmap()
 
         for i in [0, 6, 15, 17, 10, -6, -15, -17, -10]:
-            if square + i >= 64 or square + i < 0:
+            if square + i >= self.board_size**2 or square + i < 0:
                 # skip OOB
                 continue
             attacks[square + i] = 1
@@ -160,7 +169,7 @@ class Board():
         return attacks
 
     def update_occupied_squares_bb(self):
-        result = np.zeros(64, "byte")
+        result = np.zeros(self.board_size**2, "byte")
         for board in self.occupied_squares_bb:
             result = np.bitwise_or(board, result, dtype="byte")
         self.occupied_squares_bb = result
@@ -169,7 +178,7 @@ class Board():
         return  1 - self.occupied_squares_bb
 
     def make_empty_bitmap(self):
-        return np.zeros(64, dtype="byte")
+        return np.zeros(self.board_size**2, dtype="byte")
 
     def make_rank_file_bitmaps(self):
         # todo: faster numpy methods
@@ -216,10 +225,10 @@ class Board():
         self.black_Q_bb[59] = 1
         self.black_K_bb[60] = 1
 
-def pretty_print_bb(bb):
+def pretty_print_bb(bb, board_size=8):
     val = ''
-    display_rank = 8
-    board = np.reshape(np.flip(bb), (8, 8))
+    display_rank = board_size
+    board = np.reshape(np.flip(bb), (board_size, board_size))
     for i, row in enumerate(board):
         val += f'{display_rank} '
         display_rank -= 1
@@ -230,6 +239,6 @@ def pretty_print_bb(bb):
             val += ' ░'
         val += '\n'
     val += '  '
-    for char in 'ABCDEFGH':
+    for char in string.ascii_uppercase[:board_size]:
         val += f' {char}'
     print(val)
