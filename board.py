@@ -16,6 +16,8 @@ class Board():
     """
 
     def __init__(self):
+        self.reset_bb()
+
         self.white_R_bb = self.create_empty_bitmap()
         self.white_K_bb = self.create_empty_bitmap()
         self.white_B_bb = self.create_empty_bitmap()
@@ -32,24 +34,56 @@ class Board():
 
         self.init_pieces()
 
-        self.occupied_squares_bb = np.vstack(
-                    (self.white_R_bb,
-                    self.white_N_bb,
-                    self.white_B_bb,
-                    self.white_Q_bb,
-                    self.white_K_bb,
-                    self.white_P_bb,
-                    self.black_R_bb,
-                    self.black_N_bb,
-                    self.black_B_bb,
-                    self.black_Q_bb,
-                    self.black_K_bb,
-                    self.black_P_bb)
-                    )
+        self.occupied_squares_bb = np.vstack((
+            self.white_R_bb,
+            self.white_N_bb,
+            self.white_B_bb,
+            self.white_Q_bb,
+            self.white_K_bb,
+            self.white_P_bb,
+            self.black_R_bb,
+            self.black_N_bb,
+            self.black_B_bb,
+            self.black_Q_bb,
+            self.black_K_bb,
+            self.black_P_bb
+        ))
 
     def init_pieces(self):
         self._set_white()
         self._set_black()
+
+    def reset_bb(self):
+        self.bb = self.create_empty_bitmap()
+
+    # slide east
+    def plus1(self, square):
+        for i in range(square, 64, 1):
+            self.bb[i] = 1
+            if not (i+1) % 8:
+                return
+
+    # slide north west
+    def plus7(self, square):
+        for i in range(square, 64, 7):
+            self.bb[i] = 1
+            if not (i+1) % 8:
+                return
+
+    def plus8(self, square):
+        for i in range(square, 64, 8):
+            self.bb[i] = 1
+            if not (i+1) % 8:
+                return
+
+    def plus9(self, square):
+        for i in range(square, 64, 9):
+            self.bb[i] = 1
+            if not (i+1) % 8:
+                return
+
+    def get_rank_attack(self, rank):
+        self.rank_attacks = np.ndarray(64, 256)
 
     def update_occupied_squares_bb(self):
         result = np.zeros(64, "byte")
