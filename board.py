@@ -126,26 +126,35 @@ class Board():
                 return
 
     def knight_attacks(self, square):
-        mask = self.make_empty_bitmap()
+        row_mask = self.make_empty_bitmap()
+        col_mask = self.make_empty_bitmap()
+        agg_mask = self.make_empty_bitmap()
         if square in fsq.a:
-            mask = np.bitwise_or(self.file_g_bb, self.file_h_bb)
+            col_mask = np.bitwise_or(self.file_g_bb, self.file_h_bb)
         elif square in fsq.b:
-            mask = self.file_g_bb
+            col_mask = self.file_g_bb
         elif square in fsq.g:
-            mask = self.file_a_bb
+            col_mask = self.file_a_bb
         elif square in fsq.h:
-            mask = np.bitwise_or(self.file_a_bb, self.file_b_bb)
+            col_mask = np.bitwise_or(self.file_a_bb, self.file_b_bb)
+
         if square in rsq._1:
-            mask = np.bitwise_or(self.file_g_bb, self.file_h_bb)
+            row_mask = np.bitwise_or(self.rank_8_bb, self.rank_7_bb)
+        if square in rsq._2:
+            row_mask = np.bitwise_or(self.rank_7_bb)
+
+        if (row_mask.any() or col_mask.any()):
+            agg_mask = np.bitwise_or(row_mask, col_mask)
+
         attacks = self.make_empty_bitmap()
         for i in [0, 6, 15, 17, 10, -6, -15, -17, -10]:
             if square + abs(i) > 64:
                 # skip OOB
                 continue
             attacks[square + i] = 1
-        if 1 in mask:
+        if agg_mask.any():
             # bit shift the attacks by mask
-            attacks = attacks >> mask
+            attacks = attacks >> agg_mask
         return attacks
 
     def update_occupied_squares_bb(self):
