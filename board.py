@@ -90,15 +90,17 @@ class Board():
 def pretty_print_bb(bb):
     val = ''
     display_rank = 8
-    for i, square in enumerate(reversed(bb)):
-        if not i % 8:
-            val += f'\n {display_rank} '
-            display_rank -= 1
-        if square:
-            val += ' ▓'
-            continue
-        val += ' ░'
-    val += '\n   '
+    board = np.reshape(np.flip(bb), (8, 8))
+    for i, row in enumerate(board):
+        val += f'{display_rank} '
+        display_rank -= 1
+        for square in np.flip(row):
+            if square:
+                val += ' ▓'
+                continue
+            val += ' ░'
+        val += '\n'
+    val += '  '
     for char in 'ABCDEFGH':
         val += f' {char}'
     print(val)
