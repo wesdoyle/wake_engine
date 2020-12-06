@@ -129,6 +129,7 @@ class Board():
         row_mask = self.make_empty_bitmap()
         col_mask = self.make_empty_bitmap()
         agg_mask = self.make_empty_bitmap()
+
         if square in fsq.a:
             col_mask = np.bitwise_or(self.file_g_bb, self.file_h_bb)
         elif square in fsq.b:
@@ -140,15 +141,16 @@ class Board():
 
         if square in rsq._1:
             row_mask = np.bitwise_or(self.rank_8_bb, self.rank_7_bb)
-        if square in rsq._2:
-            row_mask = np.bitwise_or(self.rank_7_bb)
+        elif square in rsq._2:
+            row_mask = self.rank_8_bb
 
         if (row_mask.any() or col_mask.any()):
             agg_mask = np.bitwise_or(row_mask, col_mask)
 
         attacks = self.make_empty_bitmap()
+
         for i in [0, 6, 15, 17, 10, -6, -15, -17, -10]:
-            if square + abs(i) > 64:
+            if square + i >= 64 or square + i < 0:
                 # skip OOB
                 continue
             attacks[square + i] = 1
