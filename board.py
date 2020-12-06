@@ -97,7 +97,7 @@ def pretty_print_bb(bb):
         if square:
             val += ' ▓'
             continue
-        val += ' -'
+        val += ' ░'
     val += '\n   '
     for char in 'ABCDEFGH':
         val += f' {char}'
