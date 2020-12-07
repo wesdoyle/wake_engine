@@ -64,6 +64,12 @@ class Board():
 
         self.init_pieces()
 
+        # regions
+        self.queenside_bb = self.file_a_bb | self.file_b_bb | self.file_c_bb | self.file_d_bb
+        self.kingside_bb = self.file_e_bb | self.file_f_bb | self.file_g_bb | self.file_h_bb
+        self.center_bb = (self.file_e_bb | self.file_d_bb) & (self.rank_4_bb | self.rank_5_bb)
+        self.flanks_bb = self.file_a_bb | self.file_h_bb
+
         self.occupied_squares_bb = np.vstack((
             self.white_R_bb,
             self.white_N_bb,
@@ -140,21 +146,21 @@ class Board():
         agg_mask = self.make_empty_bitmap()
 
         if square in fsq.a:
-            col_mask = np.bitwise_or(self.file_g_bb, self.file_h_bb)
+            col_mask = self.file_g_bb | self.file_h_bb
         elif square in fsq.b:
             col_mask = self.file_g_bb
         elif square in fsq.g:
             col_mask = self.file_a_bb
         elif square in fsq.h:
-            col_mask = np.bitwise_or(self.file_a_bb, self.file_b_bb)
+            col_mask = self.file_a_bb | self.file_b_bb
 
         if square in rsq._1:
-            row_mask = np.bitwise_or(self.rank_8_bb, self.rank_7_bb)
+            row_mask = self.rank_8_bb | self.rank_7_bb
         elif square in rsq._2:
             row_mask = self.rank_8_bb
 
         if (row_mask.any() or col_mask.any()):
-            agg_mask = np.bitwise_or(row_mask, col_mask)
+            agg_mask = row_mask | col_mask
 
         attacks = self.make_empty_bitmap()
 
@@ -171,7 +177,7 @@ class Board():
     def update_occupied_squares_bb(self):
         result = np.zeros(self.board_size**2, "byte")
         for board in self.occupied_squares_bb:
-            result = np.bitwise_or(board, result, dtype="byte")
+            result = board | result
         self.occupied_squares_bb = result
 
     def get_empty_squares_bb(self):
