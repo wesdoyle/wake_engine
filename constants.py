@@ -94,3 +94,24 @@ class RankSquares:
     _8 = {56, 57, 58, 59, 60, 61, 62, 63}
 
     ranks = [_1, _2, _3, _4, _5, _6, _7, _8]
+
+class Color:
+    WHITE = 0
+    BLACK = 1
+
+class Piece:
+    EMPTY = 0
+
+    wP = 1
+    wR = 2
+    wN = 3
+    wB = 4
+    wQ = 5
+    wK = 6
+
+    bP = 7
+    bR = 8
+    bN = 9
+    bB = 10
+    bQ = 11
+    bK = 12

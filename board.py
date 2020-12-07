@@ -46,8 +46,9 @@ class Board():
         self.file_g_bb = self.make_empty_bitmap()
         self.file_h_bb = self.make_empty_bitmap()
 
-        self.make_rank_file_bitmaps()
+        self.set_rank_file_bitmaps()
 
+        # white piece groups
         self.white_R_bb = self.make_empty_bitmap()
         self.white_K_bb = self.make_empty_bitmap()
         self.white_B_bb = self.make_empty_bitmap()
@@ -55,6 +56,7 @@ class Board():
         self.white_N_bb = self.make_empty_bitmap()
         self.white_Q_bb = self.make_empty_bitmap()
 
+        # black piece groups
         self.black_R_bb = self.make_empty_bitmap()
         self.black_K_bb = self.make_empty_bitmap()
         self.black_B_bb = self.make_empty_bitmap()
@@ -64,11 +66,16 @@ class Board():
 
         self.init_pieces()
 
-        # regions
+        # side groups
+        self.black_pieces_bb = self.black_P_bb | self.black_R_bb | self.black_N_bb | self.black_B_bb | self.black_K_bb | self.black_Q_bb
+        self.white_pieces_bb = self.white_P_bb | self.white_R_bb | self.white_N_bb | self.white_B_bb | self.white_K_bb | self.white_Q_bb
+
+        # board regions
         self.queenside_bb = self.file_a_bb | self.file_b_bb | self.file_c_bb | self.file_d_bb
         self.kingside_bb = self.file_e_bb | self.file_f_bb | self.file_g_bb | self.file_h_bb
-        self.center_bb = (self.file_e_bb | self.file_d_bb) & (self.rank_4_bb | self.rank_5_bb)
+        self.center_files_bb = (self.file_c_bb | self.file_d_bb | self.file_e_bb | self.file_f_bb)
         self.flanks_bb = self.file_a_bb | self.file_h_bb
+        self.center_bb = (self.file_e_bb | self.file_d_bb) & (self.rank_4_bb | self.rank_5_bb)
 
         self.occupied_squares_bb = np.vstack((
             self.white_R_bb,
@@ -85,6 +92,9 @@ class Board():
             self.black_P_bb
         ))
 
+        # static knight bbs
+        self.knight_bbs = self.make_knight_bbs()
+
     def init_pieces(self):
         self._set_white()
         self._set_black()
@@ -92,59 +102,76 @@ class Board():
     def reset_bb(self):
         self.bb = self.make_empty_bitmap()
 
+    # Sliding piece movement
     def plus1(self, square):
+        """East Ray"""
         for i in range(square, self.board_size**2, 1):
             self.bb[i] = 1
             if not (i+1) % 8:
                 return
 
     def plus7(self, square):
+        """NorthWest Ray"""
         for i in range(square, self.board_size**2, 7):
             self.bb[i] = 1
             if not (i+1) % 8:
                 return
 
     def plus8(self, square):
+        """North Ray"""
         for i in range(square, self.board_size**2, 8):
             self.bb[i] = 1
             if not (i+1) % 8:
                 return
 
     def plus9(self, square):
+        """NorthEast Ray"""
         for i in range(square, self.board_size**2, 9):
             self.bb[i] = 1
             if not (i+1) % 8:
                 return
 
     def minus1(self, square):
+        """West Ray"""
         for i in range(square, 0, -1):
             self.bb[i] = 1
             if not (i) % 8:
                 return
 
     def minus7(self, square):
+        """SouthEast Ray"""
         for i in range(square, 0, -7):
             self.bb[i] = 1
             if not (i+1) % 8:
                 return
 
     def minus8(self, square):
+        """South Ray"""
         for i in range(square, 0, -8):
             self.bb[i] = 1
             if not (i+1) % 8:
                 return
 
     def minus9(self, square):
+        """SouthWest Ray"""
         for i in range(square, -1, -9):
             self.bb[i] = 1
             if not (i) % 8:
                 return
+
+    # knights
+    def make_knight_bbs(self):
+        knight_map = {}
+        for i in range(self.board_size**2):
+            knight_map[i] = self.knight_attacks(i)
+        return knight_map
 
     def knight_attacks(self, square):
         row_mask = self.make_empty_bitmap()
         col_mask = self.make_empty_bitmap()
         agg_mask = self.make_empty_bitmap()
 
+        # overflow file mask
         if square in fsq.a:
             col_mask = self.file_g_bb | self.file_h_bb
         elif square in fsq.b:
@@ -154,11 +181,13 @@ class Board():
         elif square in fsq.h:
             col_mask = self.file_a_bb | self.file_b_bb
 
+        # overflow ranks mask
         if square in rsq._1:
             row_mask = self.rank_8_bb | self.rank_7_bb
         elif square in rsq._2:
             row_mask = self.rank_8_bb
 
+        # aggregate mask
         if (row_mask.any() or col_mask.any()):
             agg_mask = row_mask | col_mask
 
@@ -186,10 +215,11 @@ class Board():
     def make_empty_bitmap(self):
         return np.zeros(self.board_size**2, dtype="byte")
 
-    def make_rank_file_bitmaps(self):
+    def set_rank_file_bitmaps(self):
         # todo: faster numpy methods
         for val in fsq.a:
             self.file_a_bb[val] = 1
+
         for val in fsq.b: self.file_b_bb[val] = 1
         for val in fsq.c: self.file_c_bb[val] = 1
         for val in fsq.d: self.file_d_bb[val] = 1
