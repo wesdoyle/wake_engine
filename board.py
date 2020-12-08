@@ -67,9 +67,8 @@ class Board():
 
         self.init_pieces()
 
-        # side groups
-        self.black_pieces_bb = self.black_P_bb | self.black_R_bb | self.black_N_bb | self.black_B_bb | self.black_K_bb | self.black_Q_bb
         self.white_pieces_bb = self.white_P_bb | self.white_R_bb | self.white_N_bb | self.white_B_bb | self.white_K_bb | self.white_Q_bb
+        self.black_pieces_bb = self.black_P_bb | self.black_R_bb | self.black_N_bb | self.black_B_bb | self.black_K_bb | self.black_Q_bb
 
         # board regions
         self.queenside_bb = self.file_a_bb | self.file_b_bb | self.file_c_bb | self.file_d_bb
@@ -104,14 +103,18 @@ class Board():
     def reset_bb(self):
         self.bb = self.make_empty_bitmap()
 
+    def get_white_pieces_bb(self):
+        return self.white_P_bb | self.white_R_bb | self.white_N_bb | self.white_B_bb | self.white_K_bb | self.white_Q_bb
+
+    def get_black_pieces_bb(self):
+        return self.black_P_bb | self.black_R_bb | self.black_N_bb | self.black_B_bb | self.black_K_bb | self.black_Q_bb
+
     def update_position(self, piece_map):
+        # inefficient
         for key, val in piece_map.items():
             if key == Piece.wP:
-                print('placing white pawns on', val)
                 self.white_P_bb.fill(0)
                 np.put(self.white_P_bb, list(val), 1)
-                print(self.white_P_bb)
-                print('placed white pawns')
         # TODO: finish piecemap translation
 
     # Sliding piece movement
