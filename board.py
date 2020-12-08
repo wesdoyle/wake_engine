@@ -175,7 +175,7 @@ class Board():
         if square in fsq.a:
             col_mask = self.file_g_bb | self.file_h_bb
         elif square in fsq.b:
-            col_mask = self.file_g_bb
+            col_mask = self.file_h_bb
         elif square in fsq.g:
             col_mask = self.file_a_bb
         elif square in fsq.h:
