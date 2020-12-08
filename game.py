@@ -1,4 +1,5 @@
 from position import Position
+from board import Board
 
 """
 notes:
@@ -8,8 +9,8 @@ notes:
 class Game:
     def __init__(self):
         self.history = []   # Stack of Position objects
-        initial_position = Postion()
-        self.history.push(initial_position)
+        initial_position = Position(None)
+        self.history.append(initial_position)
         self.half_move_number = 0
 
     def add_postion(self, position) -> bool:

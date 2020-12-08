@@ -1,7 +1,7 @@
 import numpy as np
 import string
 
-from constants import FileSquares as fsq, RankSquares as rsq
+from constants import Piece, FileSquares as fsq, RankSquares as rsq
 
 class Board():
 
@@ -22,6 +22,7 @@ class Board():
         -> Piece captures (diff color AND),
             Illegal Moves (same color AND), etc.
     """
+
 
     def __init__(self, board_size=8):
 
@@ -95,12 +96,23 @@ class Board():
         # static knight bbs
         self.knight_bbs = self.make_knight_bbs()
 
+
     def init_pieces(self):
         self._set_white()
         self._set_black()
 
     def reset_bb(self):
         self.bb = self.make_empty_bitmap()
+
+    def update_position(self, piece_map):
+        for key, val in piece_map.items():
+            if key == Piece.wP:
+                print('placing white pawns on', val)
+                self.white_P_bb.fill(0)
+                np.put(self.white_P_bb, list(val), 1)
+                print(self.white_P_bb)
+                print('placed white pawns')
+        # TODO: finish piecemap translation
 
     # Sliding piece movement
     def plus1(self, square):

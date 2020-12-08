@@ -2,10 +2,10 @@ class Move():
     """
     Represents the motion of a piece from an origin square to a target square
     """
-    def __init__(self, piece, from_sq, to_sq, is_capture, is_promotion):
+    def __init__(self, piece, squares, is_capture, is_promotion):
         self.piece = piece
-        self.from_sq = from_sq
-        self.to_sq = to_sq
+        self.from_sq = squares[0]
+        self.to_sq = squares[1]
         self.is_capture = is_capture
         self.is_promotion = is_promotion
 
