@@ -51,8 +51,12 @@ class Board:
 
         self._set_rank_file_bitmaps()
 
-        # static knight bbs
+        # static knight attacks
         self.knight_bbs = self._make_knight_attack_bb()
+
+        # static pawn attacks
+        self.wP_east_attack_map, self.wP_west_attack_map, self.bP_east_attack_map, self.bP_west_attack_map = \
+            self._make_pawn_attack_bbs()
 
     @property
     def white_pieces_bb(self):
@@ -89,6 +93,14 @@ class Board:
     @property
     def center_squares_bb(self):
         return (self.file_e_bb | self.file_d_bb) & (self.rank_4_bb | self.rank_5_bb)
+
+    @property
+    def current_white_pawn_attacks(self):
+        pass
+
+    @property
+    def current_black_pawn_attacks(self):
+        pass
 
     def init_pieces(self):
         self._set_white()
@@ -204,6 +216,7 @@ class Board:
         wP_west_attack_map = {}
         bP_east_attack_map = {}
         bP_west_attack_map = {}
+
         for i in range(self.board_size ** 2):
             wP_east_attack_map[i] = self._white_pawn_east_attacks(i)
             wP_west_attack_map[i] = self._white_pawn_west_attacks(i)
@@ -212,17 +225,29 @@ class Board:
 
         return wP_east_attack_map, wP_west_attack_map, bP_east_attack_map, bP_west_attack_map
 
-    def _white_pawn_east_attacks(self, square):
-        pass
+    @staticmethod
+    def _white_pawn_east_attacks(square):
+        if square in fsq.h:
+            pass
+        return np.array(square + 9)
 
-    def _black_pawn_east_attacks(self, square):
-        pass
+    @staticmethod
+    def _white_pawn_west_attacks(square):
+        if square in fsq.a:
+            pass
+        return np.array(square + 7)
 
-    def _white_pawn_west_attacks(self, square):
-        pass
+    @staticmethod
+    def _black_pawn_east_attacks(square):
+        if square in fsq.h:
+            pass
+        return np.array(square - 9)
 
-    def _black_pawn_west_attacks(self, square):
-        pass
+    @staticmethod
+    def _black_pawn_west_attacks(square):
+        if square in fsq.a:
+            pass
+        return np.array(square - 9)
 
     # Knight Attacks
     def _make_knight_attack_bb(self):
