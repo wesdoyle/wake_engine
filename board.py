@@ -52,7 +52,7 @@ class Board:
         self._set_rank_file_bitmaps()
 
         # static knight bbs
-        self.knight_bbs = self._make_knight_bbs()
+        self.knight_bbs = self._make_knight_attack_bb()
 
     @property
     def white_pieces_bb(self):
@@ -168,7 +168,7 @@ class Board:
         """West Ray"""
         for i in range(square, 0, -1):
             self.attack_bb[i] = 1
-            if not (i) % 8:
+            if not i % 8:
                 return
 
     def minus7(self, square):
@@ -189,14 +189,47 @@ class Board:
         """SouthWest Ray"""
         for i in range(square, -1, -9):
             self.attack_bb[i] = 1
-            if not (i) % 8:
+            if not i % 8:
                 return
 
-    def _make_knight_bbs(self):
-        knight_map = {}
+    def get_bishop_attack_from(self, square):
+        pass
+
+    def get_rook_attack_from(self, square):
+        pass
+
+    # Pawn Attacks
+    def _make_pawn_attack_bbs(self):
+        wP_east_attack_map = {}
+        wP_west_attack_map = {}
+        bP_east_attack_map = {}
+        bP_west_attack_map = {}
         for i in range(self.board_size ** 2):
-            knight_map[i] = self._knight_attacks(i)
-        return knight_map
+            wP_east_attack_map[i] = self._white_pawn_east_attacks(i)
+            wP_west_attack_map[i] = self._white_pawn_west_attacks(i)
+            bP_east_attack_map[i] = self._black_pawn_east_attacks(i)
+            bP_west_attack_map[i] = self._black_pawn_west_attacks(i)
+
+        return wP_east_attack_map, wP_west_attack_map, bP_east_attack_map, bP_west_attack_map
+
+    def _white_pawn_east_attacks(self, square):
+        pass
+
+    def _black_pawn_east_attacks(self, square):
+        pass
+
+    def _white_pawn_west_attacks(self, square):
+        pass
+
+    def _black_pawn_west_attacks(self, square):
+        pass
+
+    # Knight Attacks
+    def _make_knight_attack_bb(self):
+        knight_attack_map = {}
+        for i in range(self.board_size ** 2):
+            knight_attack_map[i] = self._knight_attacks(i)
+        return knight_attack_map
 
     def _knight_attacks(self, square):
         row_mask = self._make_empty_bitmap()

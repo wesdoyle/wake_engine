@@ -15,7 +15,7 @@ class Game:
         self.half_move_number = 0
 
     def add_position(self, position) -> bool:
-        self.history.push(position)
+        self.history.append(position)
         self.half_move_number += 1
         return True
 
