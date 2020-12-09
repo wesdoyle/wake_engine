@@ -1,5 +1,6 @@
-import numpy as np
 import string
+
+import numpy as np
 
 from constants import Piece, FileSquares as fsq, RankSquares as rsq
 
@@ -8,7 +9,7 @@ class Board:
 
     def __init__(self, board_size=8):
 
-        self.board_size = board_size  # (64 squares)
+        self.board_size = board_size
 
         # white piece groups
         self.white_R_bb = self._make_empty_bitmap()
@@ -95,6 +96,7 @@ class Board:
 
     def update_position(self, piece_map):
         for key, val in piece_map.items():
+            # white pieces
             if key == Piece.wP:
                 self.white_P_bb.fill(0)
                 np.put(self.white_P_bb, list(val), 1)
@@ -113,22 +115,23 @@ class Board:
             elif key == Piece.wK:
                 self.white_K_bb.fill(0)
                 np.put(self.white_K_bb, list(val), 1)
-            if key == Piece.wP:
+            # white pieces
+            if key == Piece.bP:
                 self.black_P_bb.fill(0)
                 np.put(self.black_P_bb, list(val), 1)
-            elif key == Piece.wR:
+            elif key == Piece.bR:
                 self.black_R_bb.fill(0)
                 np.put(self.black_R_bb, list(val), 1)
-            elif key == Piece.wN:
+            elif key == Piece.bN:
                 self.black_N_bb.fill(0)
                 np.put(self.black_N_bb, list(val), 1)
-            elif key == Piece.wB:
+            elif key == Piece.bB:
                 self.black_B_bb.fill(0)
                 np.put(self.black_B_bb, list(val), 1)
-            elif key == Piece.wQ:
+            elif key == Piece.bQ:
                 self.black_Q_bb.fill(0)
                 np.put(self.black_Q_bb, list(val), 1)
-            elif key == Piece.wK:
+            elif key == Piece.bK:
                 self.black_K_bb.fill(0)
                 np.put(self.black_K_bb, list(val), 1)
 
