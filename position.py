@@ -1,6 +1,7 @@
 from board import Board
 from constants import Color, Piece
 
+
 class Position:
     """Represents the internal state of a chess position"""
 
@@ -12,17 +13,17 @@ class Position:
 
         self.to_move = Color.WHITE
 
-        self.castle_rights = { Color.WHITE: True, Color.BLACK: True }
-        self.en_passant_target = None # target square
+        self.castle_rights = {Color.WHITE: True, Color.BLACK: True}
+        self.en_passant_target = None  # target square
         self.halfmove_clock = 0
 
         self.piece_map = {}
-        self.set_initial_piece_locs()
+        self.set_initial_piece_locations()
 
     def get_piece_locations(self):
         pass
 
-    def set_initial_piece_locs(self):
+    def set_initial_piece_locations(self):
         self.piece_map[Piece.wP] = set([i for i in range(8, 16)])
         self.piece_map[Piece.wR] = {0, 7}
         self.piece_map[Piece.wN] = {1, 6}
@@ -75,4 +76,3 @@ class Position:
     def is_legal_move(self, move):
         """ TODO: quasi-legal move check """
         return True
-
