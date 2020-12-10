@@ -96,9 +96,6 @@ class Board:
         # static knight attacks
         self.knight_bbs = self._make_knight_attack_bb()
 
-        # static pawn attacks
-        self.wP_east_attack_map, self.wP_west_attack_map, self.bP_east_attack_map, self.bP_west_attack_map = \
-            self._make_pawn_attack_bbs()
 
     @property
     def white_pieces_bb(self):
@@ -137,11 +134,29 @@ class Board:
         return (self.file_e_bb | self.file_d_bb) & (self.rank_4_bb | self.rank_5_bb)
 
     @property
-    def current_white_pawn_attacks(self):
+    def white_P_east_attacks(self):
+        # White pawn east attacks are north east (9) AND NOT the A File
+        return (self.white_P_bb << 9) & (~self.file_a_bb)
+
+    @property
+    def white_P_west_attacks(self):
+        # White pawn east attacks are north west (7) AND NOT the H File
+        return (self.white_P_bb << 7) & (~self.file_h_bb)
+
+    @property
+    def white_pawn_attacks(self):
+        return self.white_P_east_attacks | self.white_P_west_attacks
+
+    @property
+    def black_pawn_east_attacks(self):
         pass
 
     @property
-    def current_black_pawn_attacks(self):
+    def black_pawn_west_attacks(self):
+        pass
+
+    @property
+    def black_pawn_attacks(self):
         pass
 
     def init_pieces(self):
@@ -205,7 +220,7 @@ class Board:
     def make_north_ray(self, square):
         for i in range(square, BOARD_SQUARES, BOARD_SIZE):
             self.attack_bb[i] = 1
-            if not (i + 1) % 8:
+            if not (i + 1) % BOARD_SIZE:
                 return
 
     def make_north_east_ray(self, square):
@@ -246,42 +261,7 @@ class Board:
 
     # Pawn Attacks
     def _make_pawn_attack_bbs(self):
-        wP_east_attack_map = {}
-        wP_west_attack_map = {}
-        bP_east_attack_map = {}
-        bP_west_attack_map = {}
-
-        for i in range(BOARD_SQUARES):
-            wP_east_attack_map[i] = self._white_pawn_east_attacks(i)
-            wP_west_attack_map[i] = self._white_pawn_west_attacks(i)
-            bP_east_attack_map[i] = self._black_pawn_east_attacks(i)
-            bP_west_attack_map[i] = self._black_pawn_west_attacks(i)
-
-        return wP_east_attack_map, wP_west_attack_map, bP_east_attack_map, bP_west_attack_map
-
-    @staticmethod
-    def _white_pawn_east_attacks(square):
-        if square in File.H:
-            pass
-        return np.array(square + BOARD_SIZE + 1)
-
-    @staticmethod
-    def _white_pawn_west_attacks(square):
-        if square in File.A:
-            pass
-        return np.array(square + BOARD_SIZE - 1)
-
-    @staticmethod
-    def _black_pawn_east_attacks(square):
-        if square in File.H:
-            pass
-        return np.array(square - BOARD_SIZE - 1)
-
-    @staticmethod
-    def _black_pawn_west_attacks(square):
-        if square in File.A:
-            pass
-        return np.array(square - (BOARD_SIZE - 1))
+        pass
 
     # Knight Attacks
     def _make_knight_attack_bb(self):
