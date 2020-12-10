@@ -2,6 +2,16 @@ from board import Board
 from constants import Color, Piece
 
 
+def generate_fen():
+    """ TODO: Generate FEN for the current state """
+    return '-- TODO: generate FEN --'
+
+
+def is_legal_move(move):
+    """ TODO: quasi-legal move check """
+    return True
+
+
 class Position:
     """Represents the internal state of a chess position"""
 
@@ -43,7 +53,7 @@ class Position:
         Notes:
         TODO: should Game generate new positions instead?
         """
-        if not self.is_legal_move(move):
+        if not is_legal_move(move):
             print('Illegal move')
             return
 
@@ -63,16 +73,8 @@ class Position:
 
         self.update_bitboard()
         self.to_move = not self.to_move
-        return self.generate_fen()
+        return generate_fen()
 
     def update_bitboard(self):
         """ Data flows from MakeMove -> Position -> BitBoard -> Search """
         self.board.update_position(self.piece_map)
-
-    def generate_fen(self):
-        """ TODO: Generate FEN for the current state """
-        return '-- TODO: generate FEN --'
-
-    def is_legal_move(self, move):
-        """ TODO: quasi-legal move check """
-        return True

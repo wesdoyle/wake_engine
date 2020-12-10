@@ -1,3 +1,9 @@
+import numpy as np
+
+LIGHT_SQUARES = 0x55AA55AA55AA55AA
+DARK_SQUARES = 0xAA55AA55AA55AA55
+
+
 class SquarePosition:
     a1 = 0
     b1 = 1
@@ -82,6 +88,15 @@ class File:
     G = {6, 14, 22, 30, 38, 46, 54, 62}
     H = {7, 15, 23, 31, 39, 47, 55, 63}
 
+    hexA = np.array([0x0101010101010101], dtype=np.uint64)
+    hexB = np.array([0x0202020202020202], dtype=np.uint64)
+    hexC = np.array([0x0404040404040404], dtype=np.uint64)
+    hexD = np.array([0x0808080808080808], dtype=np.uint64)
+    hexE = np.array([0x1010101010101010], dtype=np.uint64)
+    hexF = np.array([0x2020202020202020], dtype=np.uint64)
+    hexG = np.array([0x4040404040404040], dtype=np.uint64)
+    hexH = np.array([0x8080808080808080], dtype=np.uint64)
+
     files = [A, B, C, D, E, F, G, H]
 
 
@@ -94,6 +109,15 @@ class Rank:
     x6 = {40, 41, 42, 43, 44, 45, 46, 47}
     x7 = {48, 49, 50, 51, 52, 53, 54, 55}
     x8 = {56, 57, 58, 59, 60, 61, 62, 63}
+
+    hex1 = np.array([0x00000000000000FF], dtype=np.uint64)
+    hex2 = np.array([0x000000000000FF00], dtype=np.uint64)
+    hex3 = np.array([0x0000000000FF0000], dtype=np.uint64)
+    hex4 = np.array([0x00000000FF000000], dtype=np.uint64)
+    hex5 = np.array([0x000000FF00000000], dtype=np.uint64)
+    hex6 = np.array([0x0000FF0000000000], dtype=np.uint64)
+    hex7 = np.array([0x00FF000000000000], dtype=np.uint64)
+    hex8 = np.array([0xFF00000000000000], dtype=np.uint64)
 
     ranks = [x1, x2, x3, x4, x5, x6, x7, x8]
 
