@@ -2,7 +2,7 @@ import string
 
 import numpy as np
 
-from constants import Piece, FileSquares as file_sq, RankSquares as rank_sq
+from constants import Piece, File, Rank
 
 BOARD_SIZE = 8
 BOARD_SQUARES = BOARD_SIZE ** 2
@@ -22,6 +22,14 @@ def get_bitboard_as_bytes(bitboard):
 
 def get_binary_string(bitboard):
     return format(bitboard[0], 'b').zfill(BOARD_SQUARES)
+
+
+def set_bit(bitboard, bit):
+    return bitboard | (1 << bit)
+
+
+def clear_bit(bitboard, bit):
+    return bitboard & ~(1 << bit)
 
 
 def pprint_bb(bitboard):
@@ -63,9 +71,6 @@ class Board:
         self.black_P_bb = make_empty_uint64_bitmap()
         self.black_N_bb = make_empty_uint64_bitmap()
         self.black_Q_bb = make_empty_uint64_bitmap()
-
-        # current piece attacks bitboard
-        self.attack_bb = make_empty_uint64_bitmap()
 
         self.init_pieces()
 
@@ -185,60 +190,52 @@ class Board:
                 np.put(self.black_K_bb, list(val), 1)
 
     # Sliding piece movement
-    def plus1(self, square):
-        """East Ray"""
+    def make_east_ray(self, square):
         for i in range(square, BOARD_SQUARES, 1):
             self.attack_bb[i] = 1
             if not (i + 1) % 8:
                 return
 
-    def plus7(self, square):
-        """NorthWest Ray"""
-        for i in range(square, BOARD_SQUARES, 7):
+    def make_north_west_ray(self, square):
+        for i in range(square, BOARD_SQUARES, BOARD_SIZE - 1):
             self.attack_bb[i] = 1
             if not (i + 1) % 8:
                 return
 
-    def plus8(self, square):
-        """North Ray"""
-        for i in range(square, BOARD_SQUARES, 8):
+    def make_north_ray(self, square):
+        for i in range(square, BOARD_SQUARES, BOARD_SIZE):
             self.attack_bb[i] = 1
             if not (i + 1) % 8:
                 return
 
-    def plus9(self, square):
-        """NorthEast Ray"""
-        for i in range(square, BOARD_SQUARES, 9):
+    def make_north_east_ray(self, square):
+        for i in range(square, BOARD_SQUARES, BOARD_SIZE + 1):
             self.attack_bb[i] = 1
-            if not (i + 1) % 8:
+            if not (i + 1) % BOARD_SIZE:
                 return
 
-    def minus1(self, square):
-        """West Ray"""
+    def make_west_ray(self, square):
         for i in range(square, 0, -1):
             self.attack_bb[i] = 1
-            if not i % 8:
+            if not i % BOARD_SIZE:
                 return
 
-    def minus7(self, square):
-        """SouthEast Ray"""
-        for i in range(square, 0, -7):
+    def make_south_east_ray(self, square):
+        for i in range(square, 0, -(BOARD_SIZE - 1)):
             self.attack_bb[i] = 1
-            if not (i + 1) % 8:
+            if not (i + 1) % BOARD_SIZE:
                 return
 
-    def minus8(self, square):
-        """South Ray"""
-        for i in range(square, 0, -8):
+    def make_south_ray(self, square):
+        for i in range(square, 0, -BOARD_SIZE):
             self.attack_bb[i] = 1
-            if not (i + 1) % 8:
+            if not (i + 1) % BOARD_SIZE:
                 return
 
-    def minus9(self, square):
-        """SouthWest Ray"""
-        for i in range(square, -1, -9):
+    def make_south_west_ray(self, square):
+        for i in range(square, -1, -BOARD_SIZE - 1):
             self.attack_bb[i] = 1
-            if not i % 8:
+            if not i % BOARD_SIZE:
                 return
 
     def get_bishop_attack_from(self, square):
@@ -264,27 +261,27 @@ class Board:
 
     @staticmethod
     def _white_pawn_east_attacks(square):
-        if square in file_sq.h:
+        if square in File.H:
             pass
-        return np.array(square + 9)
+        return np.array(square + BOARD_SIZE + 1)
 
     @staticmethod
     def _white_pawn_west_attacks(square):
-        if square in file_sq.a:
+        if square in File.A:
             pass
-        return np.array(square + 7)
+        return np.array(square + BOARD_SIZE - 1)
 
     @staticmethod
     def _black_pawn_east_attacks(square):
-        if square in file_sq.h:
+        if square in File.H:
             pass
-        return np.array(square - 9)
+        return np.array(square - BOARD_SIZE - 1)
 
     @staticmethod
     def _black_pawn_west_attacks(square):
-        if square in file_sq.a:
+        if square in File.A:
             pass
-        return np.array(square - 9)
+        return np.array(square - (BOARD_SIZE - 1))
 
     # Knight Attacks
     def _make_knight_attack_bb(self):
@@ -299,19 +296,19 @@ class Board:
         agg_mask = make_empty_uint64_bitmap()
 
         # overflow file mask
-        if square in file_sq.a:
+        if square in File.A:
             col_mask = self.file_g_bb | self.file_h_bb
-        elif square in file_sq.b:
+        elif square in File.B:
             col_mask = self.file_h_bb
-        elif square in file_sq.g:
+        elif square in File.G:
             col_mask = self.file_a_bb
-        elif square in file_sq.h:
+        elif square in File.H:
             col_mask = self.file_a_bb | self.file_b_bb
 
         # overflow ranks mask
-        if square in rank_sq._1:
+        if square in Rank.x1:
             row_mask = self.rank_8_bb | self.rank_7_bb
-        elif square in rank_sq._2:
+        elif square in Rank.x2:
             row_mask = self.rank_8_bb
 
         # aggregate mask
@@ -331,48 +328,60 @@ class Board:
         return attacks
 
     def _set_rank_file_bitmaps(self):
-        # todo: faster numpy methods
-        for val in file_sq.a:
-            self.file_a_bb[val] = 1
+        for sq in File.A:
+            self.file_a_bb |= set_bit(self.file_a_bb, sq)
+        for sq in File.B:
+            self.file_b_bb |= set_bit(self.file_b_bb, sq)
+        for sq in File.C:
+            self.file_c_bb |= set_bit(self.file_b_bb, sq)
+        for sq in File.D:
+            self.file_d_bb |= set_bit(self.file_b_bb, sq)
+        for sq in File.E:
+            self.file_e_bb |= set_bit(self.file_b_bb, sq)
+        for sq in File.F:
+            self.file_f_bb |= set_bit(self.file_b_bb, sq)
+        for sq in File.G:
+            self.file_g_bb |= set_bit(self.file_b_bb, sq)
+        for sq in File.H:
+            self.file_h_bb |= set_bit(self.file_b_bb, sq)
 
-        for val in file_sq.b: self.file_b_bb[val] = 1
-        for val in file_sq.c: self.file_c_bb[val] = 1
-        for val in file_sq.d: self.file_d_bb[val] = 1
-        for val in file_sq.e: self.file_e_bb[val] = 1
-        for val in file_sq.f: self.file_f_bb[val] = 1
-        for val in file_sq.g: self.file_g_bb[val] = 1
-        for val in file_sq.h: self.file_h_bb[val] = 1
-
-        for val in rank_sq._1: self.rank_1_bb[val] = 1
-        for val in rank_sq._2: self.rank_2_bb[val] = 1
-        for val in rank_sq._3: self.rank_3_bb[val] = 1
-        for val in rank_sq._4: self.rank_4_bb[val] = 1
-        for val in rank_sq._5: self.rank_5_bb[val] = 1
-        for val in rank_sq._6: self.rank_6_bb[val] = 1
-        for val in rank_sq._7: self.rank_7_bb[val] = 1
-        for val in rank_sq._8: self.rank_8_bb[val] = 1
+        for sq in Rank.x1:
+            self.rank_1_bb |= set_bit(self.rank_1_bb, sq)
+        for sq in Rank.x2:
+            self.rank_2_bb |= set_bit(self.rank_2_bb, sq)
+        for sq in Rank.x3:
+            self.rank_3_bb |= set_bit(self.rank_3_bb, sq)
+        for sq in Rank.x4:
+            self.rank_4_bb |= set_bit(self.rank_4_bb, sq)
+        for sq in Rank.x5:
+            self.rank_5_bb |= set_bit(self.rank_5_bb, sq)
+        for sq in Rank.x6:
+            self.rank_6_bb |= set_bit(self.rank_6_bb, sq)
+        for sq in Rank.x7:
+            self.rank_7_bb |= set_bit(self.rank_7_bb, sq)
+        for sq in Rank.x8:
+            self.rank_8_bb |= set_bit(self.rank_8_bb, sq)
 
     def _set_white(self):
         for i in range(8, 16):
-            self.white_P_bb[i] = 1
-        self.white_R_bb[0] = 1
-        self.white_R_bb[7] = 1
-        self.white_N_bb[1] = 1
-        self.white_N_bb[6] = 1
-        self.white_B_bb[2] = 1
-        self.white_B_bb[5] = 1
-        self.white_Q_bb[3] = 1
-        self.white_K_bb[4] = 1
+            self.white_P_bb |= set_bit(self.white_P_bb, i)
+        self.white_R_bb |= set_bit(self.white_R_bb, 0)
+        self.white_R_bb |= set_bit(self.white_R_bb, 7)
+        self.white_N_bb |= set_bit(self.white_N_bb, 1)
+        self.white_N_bb |= set_bit(self.white_N_bb, 6)
+        self.white_B_bb |= set_bit(self.white_B_bb, 2)
+        self.white_B_bb |= set_bit(self.white_B_bb, 5)
+        self.white_Q_bb |= set_bit(self.white_Q_bb, 3)
+        self.white_K_bb |= set_bit(self.white_K_bb, 4)
 
     def _set_black(self):
-        for i in range(48, 56):
-            self.black_P_bb[i] = 1
-        self.black_R_bb[63] = 1
-        self.black_R_bb[56] = 1
-        self.black_N_bb[57] = 1
-        self.black_N_bb[62] = 1
-        self.black_B_bb[61] = 1
-        self.black_B_bb[58] = 1
-        self.black_Q_bb[59] = 1
-        self.black_K_bb[60] = 1
-
+        for bit in range(48, 56):
+            self.black_P_bb |= set_bit(self.black_P_bb, bit)
+        self.black_R_bb |= set_bit(self.black_R_bb, 63)
+        self.black_R_bb |= set_bit(self.black_R_bb, 56)
+        self.black_N_bb |= set_bit(self.black_N_bb, 57)
+        self.black_N_bb |= set_bit(self.black_N_bb, 62)
+        self.black_B_bb |= set_bit(self.black_B_bb, 61)
+        self.black_B_bb |= set_bit(self.black_B_bb, 58)
+        self.black_Q_bb |= set_bit(self.black_Q_bb, 59)
+        self.black_K_bb |= set_bit(self.black_K_bb, 60)
