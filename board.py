@@ -21,7 +21,7 @@ def get_bitboard_as_bytes(bitboard):
 
 
 def get_binary_string(bitboard):
-    return format(bitboard[0], 'b').zfill(BOARD_SQUARES)
+    return format(bitboard, 'b').zfill(BOARD_SQUARES)
 
 
 def set_bit(bitboard, bit):
@@ -57,39 +57,39 @@ class Board:
     def __init__(self):
 
         # white piece groups
-        self.white_R_bb = make_empty_uint64_bitmap()
-        self.white_K_bb = make_empty_uint64_bitmap()
-        self.white_B_bb = make_empty_uint64_bitmap()
-        self.white_P_bb = make_empty_uint64_bitmap()
-        self.white_N_bb = make_empty_uint64_bitmap()
-        self.white_Q_bb = make_empty_uint64_bitmap()
+        self.white_R_bb = make_empty_uint64_bitmap()[0]
+        self.white_K_bb = make_empty_uint64_bitmap()[0]
+        self.white_B_bb = make_empty_uint64_bitmap()[0]
+        self.white_P_bb = make_empty_uint64_bitmap()[0]
+        self.white_N_bb = make_empty_uint64_bitmap()[0]
+        self.white_Q_bb = make_empty_uint64_bitmap()[0]
 
         # black piece groups
-        self.black_R_bb = make_empty_uint64_bitmap()
-        self.black_K_bb = make_empty_uint64_bitmap()
-        self.black_B_bb = make_empty_uint64_bitmap()
-        self.black_P_bb = make_empty_uint64_bitmap()
-        self.black_N_bb = make_empty_uint64_bitmap()
-        self.black_Q_bb = make_empty_uint64_bitmap()
+        self.black_R_bb = make_empty_uint64_bitmap()[0]
+        self.black_K_bb = make_empty_uint64_bitmap()[0]
+        self.black_B_bb = make_empty_uint64_bitmap()[0]
+        self.black_P_bb = make_empty_uint64_bitmap()[0]
+        self.black_N_bb = make_empty_uint64_bitmap()[0]
+        self.black_Q_bb = make_empty_uint64_bitmap()[0]
 
         self.init_pieces()
 
-        self.rank_1_bb = make_empty_uint64_bitmap()
-        self.rank_2_bb = make_empty_uint64_bitmap()
-        self.rank_3_bb = make_empty_uint64_bitmap()
-        self.rank_4_bb = make_empty_uint64_bitmap()
-        self.rank_5_bb = make_empty_uint64_bitmap()
-        self.rank_6_bb = make_empty_uint64_bitmap()
-        self.rank_7_bb = make_empty_uint64_bitmap()
-        self.rank_8_bb = make_empty_uint64_bitmap()
-        self.file_a_bb = make_empty_uint64_bitmap()
-        self.file_b_bb = make_empty_uint64_bitmap()
-        self.file_c_bb = make_empty_uint64_bitmap()
-        self.file_d_bb = make_empty_uint64_bitmap()
-        self.file_e_bb = make_empty_uint64_bitmap()
-        self.file_f_bb = make_empty_uint64_bitmap()
-        self.file_g_bb = make_empty_uint64_bitmap()
-        self.file_h_bb = make_empty_uint64_bitmap()
+        self.rank_1_bb = make_empty_uint64_bitmap()[0]
+        self.rank_2_bb = make_empty_uint64_bitmap()[0]
+        self.rank_3_bb = make_empty_uint64_bitmap()[0]
+        self.rank_4_bb = make_empty_uint64_bitmap()[0]
+        self.rank_5_bb = make_empty_uint64_bitmap()[0]
+        self.rank_6_bb = make_empty_uint64_bitmap()[0]
+        self.rank_7_bb = make_empty_uint64_bitmap()[0]
+        self.rank_8_bb = make_empty_uint64_bitmap()[0]
+        self.file_a_bb = make_empty_uint64_bitmap()[0]
+        self.file_b_bb = make_empty_uint64_bitmap()[0]
+        self.file_c_bb = make_empty_uint64_bitmap()[0]
+        self.file_d_bb = make_empty_uint64_bitmap()[0]
+        self.file_e_bb = make_empty_uint64_bitmap()[0]
+        self.file_f_bb = make_empty_uint64_bitmap()[0]
+        self.file_g_bb = make_empty_uint64_bitmap()[0]
+        self.file_h_bb = make_empty_uint64_bitmap()[0]
 
         self._set_rank_file_bitmaps()
 
