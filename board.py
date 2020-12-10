@@ -1,6 +1,6 @@
 import numpy as np
 
-from bitboard_helpers import make_empty_uint64_bitmap, set_bit, generate_knight_attack_bb_from_square
+from bitboard_helpers import make_empty_uint64_bitmap, set_bit, generate_knight_attack_bb_from_square, pprint_bb
 from constants import Piece, File, Rank, LIGHT_SQUARES, DARK_SQUARES
 
 BOARD_SIZE = 8
@@ -231,67 +231,69 @@ class Board:
     def update_position(self, piece_map):
         for key, val in piece_map.items():
 
+            # TODO inefficient
+
             # White Pieces
             if key == Piece.wP:
                 self.white_P_bb = np.uint64(0)
                 for bit in val:
-                    self.white_P_bb |= np.uint64(bit)
+                    self.white_P_bb |= set_bit(self.white_P_bb, np.uint64(bit))
 
             elif key == Piece.wR:
                 self.white_R_bb = np.uint64(0)
                 for bit in val:
-                    self.white_R_bb |= np.uint64(bit)
+                    self.white_R_bb |= set_bit(self.white_R_bb, np.uint64(bit))
 
             elif key == Piece.wN:
                 self.white_N_bb = np.uint64(0)
                 for bit in val:
-                    self.white_N_bb |= np.uint64(bit)
+                    self.white_N_bb |= set_bit(self.white_N_bb, np.uint64(bit))
 
             elif key == Piece.wB:
                 self.white_B_bb = np.uint64(0)
                 for bit in val:
-                    self.white_B_bb |= np.uint64(bit)
+                    self.white_B_bb |= set_bit(self.white_B_bb, np.uint64(bit))
 
             elif key == Piece.wQ:
                 self.white_Q_bb = np.uint64(0)
                 for bit in val:
-                    self.white_Q_bb |= np.uint64(bit)
+                    self.white_Q_bb |= set_bit(self.white_Q_bb, np.uint64(bit))
 
             elif key == Piece.wK:
                 self.white_K_bb = np.uint64(0)
                 for bit in val:
-                    self.white_K_bb |= np.uint64(bit)
+                    self.white_K_bb |= set_bit(self.white_K_bb, np.uint64(bit))
 
             # Black Pieces
             if key == Piece.bP:
                 self.black_P_bb = np.uint64(0)
                 for bit in val:
-                    self.black_P_bb |= np.uint64(bit)
+                    self.black_P_bb |= set_bit(self.black_P_bb, np.uint64(bit))
 
             elif key == Piece.bR:
-                self.black_P_bb = np.uint64(0)
+                self.black_R_bb = np.uint64(0)
                 for bit in val:
-                    self.black_P_bb |= np.uint64(bit)
+                    self.black_P_bb |= set_bit(self.black_R_bb, np.uint64(bit))
 
             elif key == Piece.bN:
                 self.black_N_bb = np.uint64(0)
                 for bit in val:
-                    self.black_N_bb |= np.uint64(bit)
+                    self.black_N_bb |= set_bit(self.black_N_bb, np.uint64(bit))
 
             elif key == Piece.bB:
                 self.black_B_bb = np.uint64(0)
                 for bit in val:
-                    self.black_B_bb |= np.uint64(bit)
+                    self.black_B_bb |= set_bit(self.black_B_bb, np.uint64(bit))
 
             elif key == Piece.bQ:
                 self.black_Q_bb = np.uint64(0)
                 for bit in val:
-                    self.black_Q_bb |= np.uint64(bit)
+                    self.black_Q_bb |= set_bit(self.black_Q_bb, np.uint64(bit))
 
             elif key == Piece.bK:
                 self.black_K_bb = np.uint64(0)
                 for bit in val:
-                    self.black_K_bb |= np.uint64(bit)
+                    self.black_K_bb |= set_bit(self.black_K_bb, np.uint64(bit))
 
     # -------------------------------------------------------------
     #  SLIDING PIECE MOVEMENT

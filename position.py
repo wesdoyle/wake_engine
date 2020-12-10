@@ -49,10 +49,6 @@ class Position:
         self.piece_map[Piece.bK] = {60}
 
     def make_move(self, move):
-        """
-        Notes:
-        TODO: should Game generate new positions instead?
-        """
         if not is_legal_move(move):
             print('Illegal move')
             return
@@ -71,10 +67,9 @@ class Position:
 
         self.halfmove_clock += 1
 
-        self.update_bitboard()
-        self.to_move = not self.to_move
-        return generate_fen()
-
-    def update_bitboard(self):
-        """ Data flows from MakeMove -> Position -> BitBoard -> Search """
+        # Data flows from MakeMove -> Position -> BitBoard -> Search
         self.board.update_position(self.piece_map)
+
+        self.to_move = not self.to_move
+
+        return generate_fen()
