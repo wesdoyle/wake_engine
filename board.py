@@ -135,12 +135,12 @@ class Board:
 
     @property
     def white_P_east_attacks(self):
-        # White pawn east attacks are north east (9) AND NOT the A File
+        # White pawn east attacks are north east (+9) AND NOT the A File
         return (self.white_P_bb << 9) & (~self.file_a_bb)
 
     @property
     def white_P_west_attacks(self):
-        # White pawn east attacks are north west (7) AND NOT the H File
+        # White pawn west attacks are north west (+7) AND NOT the H File
         return (self.white_P_bb << 7) & (~self.file_h_bb)
 
     @property
@@ -149,15 +149,17 @@ class Board:
 
     @property
     def black_pawn_east_attacks(self):
-        pass
+        # Black pawn east attacks are south east (-7) AND NOT the A File
+        return (self.white_P_bb >> 7) & (~self.file_a_bb)
 
     @property
     def black_pawn_west_attacks(self):
-        pass
+        # Black pawn west attacks are south west (-9) AND NOT the H File
+        return (self.white_P_bb >> 9) & (~self.file_a_bb)
 
     @property
     def black_pawn_attacks(self):
-        pass
+        return self.black_pawn_east_attacks | self.black_pawn_west_attacks
 
     def init_pieces(self):
         self._set_white()
