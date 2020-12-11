@@ -1,20 +1,21 @@
 from position import Position
-from board import Board
 
 """
 notes:
     - Game as stack of Positions
     - each move pushes a position onto the stack
 """
+
+
 class Game:
     def __init__(self):
-        self.history = []   # Stack of Position objects
+        self.history = []  # Stack of Position objects
         initial_position = Position(None)
         self.history.append(initial_position)
         self.half_move_number = 0
 
-    def add_postion(self, position) -> bool:
-        self.history.push(position)
+    def add_position(self, position) -> bool:
+        self.history.append(position)
         self.half_move_number += 1
         return True
 
@@ -36,7 +37,6 @@ class Game:
 
     def take_back_move(self) -> Position:
         try:
-            return self.histoy.pop()
+            return self.history.pop()
         except IndexError:
             print("You've reached the initial position.")
-
