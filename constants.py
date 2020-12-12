@@ -138,3 +138,6 @@ class Piece:
     bB = 10
     bQ = 11
     bK = 12
+
+    white_pieces = {wP, wR, wN, wB, wQ, wK}
+    black_pieces = {bP, bR, bN, bB, bQ, bK}

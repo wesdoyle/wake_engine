@@ -4,9 +4,13 @@ from constants import Color, Piece, Rank
 from move import Move
 import numpy as np
 
+
 # TODO: possible side-effects from mutating move all over
 #  the place in move legality checking
 
+# TODO: On illegal move, it looks like we're resetting to starting position
+
+# TODO: Bugfix pawn motion after first pawn move
 
 def generate_fen():
     """ TODO: Generate FEN for the current state """
@@ -51,7 +55,6 @@ class Position:
 
     def make_move(self, move):
         if not self.is_legal_move(move):
-            print('Illegal move')
             return
 
         # Empty piece existing spot
@@ -94,16 +97,26 @@ class Position:
         return occupy_lookup[self.to_move] & move_square_bb
 
     def is_legal_move(self, move: Move) -> bool:
+        if self.to_move == Color.WHITE and move.piece not in Piece.white_pieces:
+            print("That isn't one of your pieces.")
+            return False
+
+        if self.to_move == Color.BLACK and move.piece not in Piece.black_pieces:
+            print("That isn't one of your pieces.")
+            return False
+
         # Get position of piece from piece map
         # If its a knight, lookup if move.to & with the knight attack bb
         bb = np.uint64(0)
 
-        if move.piece in {Piece.wK | Piece.bK}:
+        if move.piece in {Piece.wN, Piece.bN}:
             # if not in the static attack map return False
             return self.is_legal_knight_move(move, bb)
 
-        if move.piece in {Piece.wP | Piece.bP}:
+        if move.piece in {Piece.wP,  Piece.bP}:
             return self.is_legal_pawn_move(move, bb)
+
+        return False
 
         # If its a king, lookup if move.to & with the knight attack bb
 
@@ -116,7 +129,7 @@ class Position:
         if not legal_knight_moves & set_bit(bb, move.to_sq):
             return False
         # if intersects_with_own_pieces return False
-        if not self.intersects_with_own_pieces(move.to_sq):
+        if self.intersects_with_own_pieces(move.to_sq):
             return False
         # if intersects_with_opp_pieces return True, is_capture => True
         if self.intersects_with_opp_pieces(move.to_sq):
@@ -136,15 +149,15 @@ class Position:
         moving_to_square = set_bit(bb, move.to_sq)
 
         legal_non_attack_moves = {
-            Color.WHITE: self.board.white_pawn_motion_bbs,
-            Color.BLACK: self.board.black_pawn_motion_bbs
+            Color.WHITE: self.board.white_pawn_motion_bbs[move.from_sq],
+            Color.BLACK: self.board.black_pawn_motion_bbs[move.from_sq]
         }
 
-        legal_non_attack_moves &= self.board.empty_squares_bb
+        legal_non_attack_moves[self.to_move] &= self.board.empty_squares_bb
 
         legal_attack_moves = {
-            Color.WHITE: self.board.white_pawn_attack_bbs,
-            Color.BLACK: self.board.black_pawn_attack_bbs
+            Color.WHITE: self.board.white_pawn_attack_bbs[move.from_sq],
+            Color.BLACK: self.board.black_pawn_attack_bbs[move.from_sq]
         }
 
         opp_occupied = {
@@ -152,13 +165,14 @@ class Position:
             Color.BLACK: self.board.white_pieces_bb
         }
 
-        legal_attack_moves &= opp_occupied
+        legal_attack_moves[self.to_move] &= opp_occupied[self.to_move]
 
-        en_passant_bb = set_bit(bb, self.en_passant_target)
+        legal_moves = legal_non_attack_moves[self.to_move] | legal_attack_moves[self.to_move]
 
-        en_passant_move = legal_attack_moves[self.to_move] & en_passant_bb
-
-        legal_moves = legal_non_attack_moves[self.to_move] | legal_attack_moves[self.to_move] | en_passant_move
+        if self.en_passant_target:
+            en_passant_bb = set_bit(bb, self.en_passant_target)
+            en_passant_move = legal_attack_moves[self.to_move] & en_passant_bb
+            legal_moves |= en_passant_move
 
         if moving_to_square & legal_attack_moves[self.to_move]:
             move.is_capture = True
