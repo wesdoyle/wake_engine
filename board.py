@@ -3,10 +3,7 @@ import numpy as np
 from bitboard_helpers import make_empty_uint64_bitmap, set_bit, make_knight_attack_bbs, make_king_attack_bbs, \
     make_white_pawn_attack_bbs, make_black_pawn_attack_bbs, file_h_bb, file_a_bb, make_diag_attack_bbs, \
     make_rook_attack_bbs, make_white_pawn_motion_bbs, make_black_pawn_motion_bbs, make_queen_attack_bbs
-from constants import Piece, Color
-
-BOARD_SIZE = 8
-BOARD_SQUARES = BOARD_SIZE ** 2
+from constants import Piece, Color, File
 
 
 class Board:
@@ -66,12 +63,12 @@ class Board:
     @property
     def white_P_east_attacks(self):
         # White pawn east attacks are north east (+9) AND NOT the A File
-        return (self.white_P_bb << 9) & (~file_a_bb)
+        return (self.white_P_bb << np.uint64(9)) & ~np.uint64(File.hexA)
 
     @property
     def white_P_west_attacks(self):
         # White pawn west attacks are north west (+7) AND NOT the H File
-        return (self.white_P_bb << 7) & (~file_h_bb)
+        return (self.white_P_bb << np.uint64(7)) & ~np.uint64(File.hexH)
 
     @property
     def white_pawn_attacks(self):
@@ -80,12 +77,12 @@ class Board:
     @property
     def black_pawn_east_attacks(self):
         # Black pawn east attacks are south east (-7) AND NOT the A File
-        return (self.white_P_bb >> 7) & (~file_a_bb)
+        return (self.white_P_bb >> np.uint64(7)) & ~np.uint64(File.hexA)
 
     @property
     def black_pawn_west_attacks(self):
         # Black pawn west attacks are south west (-9) AND NOT the H File
-        return (self.white_P_bb >> 9) & (~file_a_bb)
+        return (self.white_P_bb >> np.uint64(9)) & ~np.uint64(File.hexH)
 
     @property
     def black_pawn_attacks(self):

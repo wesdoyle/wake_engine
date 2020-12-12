@@ -2,8 +2,10 @@ import string
 
 import numpy as np
 
-from board import BOARD_SQUARES
 from constants import File, HOT, Square, Rank, DARK_SQUARES, LIGHT_SQUARES
+
+BOARD_SIZE = 8
+BOARD_SQUARES = BOARD_SIZE ** 2
 
 
 def make_empty_uint64_bitmap():
@@ -116,10 +118,10 @@ def generate_rank_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
     # North
     for i in range(0, 64, 8):
-        attack_bb |= set_bit(square + i)
+        attack_bb |= set_bit(attack_bb, square + i)
     # South
     for i in range(0, -64, -8):
-        attack_bb |= set_bit(square + i)
+        attack_bb |= set_bit(attack_bb, square + i)
     return attack_bb
 
 
@@ -176,10 +178,10 @@ def generate_king_attack_bb_from_square(square):
         attack_bb |= hot << np.uint64(square + i)
     for i in [1, 9, -7]:
         # East (mask the A file)
-        attack_bb |= hot << np.uint64(square + i) & ~np.uint64(File.A)
+        attack_bb |= hot << np.uint64(square + i) & ~np.uint64(File.hexA)
     for i in [-1, -9, 7]:
         # West (mask the H file)
-        attack_bb |= hot << np.uint64(square + i) & ~np.uint64(File.H)
+        attack_bb |= hot << np.uint64(square + i) & ~np.uint64(File.hexH)
     return attack_bb
 
 
@@ -197,18 +199,18 @@ def generate_rook_attack_bb_from_square(square):
 def generate_white_pawn_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
     # Northeast (mask the A file)
-    attack_bb |= HOT << np.uint64(square + 9) & ~np.uint64(File.A)
+    attack_bb |= HOT << np.uint64(square + 9) & ~np.uint64(File.hexA)
     # Northwest (mask the H file)
-    attack_bb |= HOT << np.uint64(square + 7) & ~np.uint64(File.H)
+    attack_bb |= HOT << np.uint64(square + 7) & ~np.uint64(File.hexH)
     return attack_bb
 
 
 def generate_black_pawn_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
     # Southeast (mask the A file)
-    attack_bb |= HOT << np.uint64(square - 9) & ~np.uint64(File.A)
+    attack_bb |= HOT << np.uint64(square - 9) & ~np.uint64(File.hexA)
     # Southwest (mask the H file)
-    attack_bb |= HOT << np.uint64(square - 7) & ~np.uint64(File.H)
+    attack_bb |= HOT << np.uint64(square - 7) & ~np.uint64(File.hexH)
     return attack_bb
 
 
