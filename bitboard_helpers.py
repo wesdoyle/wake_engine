@@ -76,7 +76,7 @@ def set_bit(bitboard, bit):
 
 
 def clear_bit(bitboard, bit):
-    return bitboard & ~(np.uint64(1) << bit)
+    return bitboard & ~(np.uint64(1) << np.uint64(bit))
 
 
 # -------------------------------------------------------------
@@ -110,7 +110,7 @@ def pprint_bb(bitboard, board_size=8):
 
 def generate_knight_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
-    for i in [0, 6, 15, 17, 10, -6, -15, -17, -10]:
+    for i in [6, 15, 17, 10, -6, -15, -17, -10]:
         attack_bb |= set_bit(attack_bb, square + i)
         # Mask of wrapping
         if square in (File.B | File.A):
@@ -128,6 +128,7 @@ def generate_rank_attack_bb_from_square(square):
     # South
     for i in range(0, -64, -8):
         attack_bb |= set_bit(attack_bb, square + i)
+    attack_bb = clear_bit(attack_bb, square)
     return attack_bb
 
 
@@ -153,6 +154,8 @@ def generate_file_attack_bb_from_square(square):
             attack_bb |= HOT << np.uint64(square)
             square -= 1
         attack_bb |= HOT << np.uint64(square)
+
+    attack_bb = clear_bit(attack_bb, original_square)
     return attack_bb
 
 
@@ -207,12 +210,13 @@ def generate_diag_attack_bb_from_square(square):
         square -= 7
     attack_bb |= HOT << np.uint64(square)
 
+    attack_bb = clear_bit(attack_bb, original_square)
     return attack_bb
 
 
 def generate_king_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
-    for i in [0, 8, -8]:
+    for i in [8, -8]:
         # North-South
         attack_bb |= HOT << np.uint64(square + i)
     for i in [1, 9, -7]:
