@@ -127,6 +127,8 @@ def generate_rank_attack_bb_from_square(square):
 
 def generate_file_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
+    original_square = square
+
     # East
     if not square % 8:
         attack_bb |= HOT << np.uint64(square)
@@ -134,6 +136,8 @@ def generate_file_attack_bb_from_square(square):
     while not square % 8 == 0:
         attack_bb |= HOT << np.uint64(square)
         square += 1
+
+    square = original_square
     # West
     if square % 8 == 0:
         attack_bb |= HOT << np.uint64(square)
