@@ -116,6 +116,7 @@ class Position:
         if move.piece in {Piece.wP,  Piece.bP}:
             return self.is_legal_pawn_move(move, bb)
 
+        print("Uncaught illegal move")
         return False
 
         # If its a king, lookup if move.to & with the knight attack bb
@@ -185,4 +186,7 @@ class Position:
         if moving_to_square & promotion_rank[self.to_move]:
             move.is_promotion = True
 
+        print("legal moves:", legal_moves)
+        print("moving_to_square:", moving_to_square)
+        print("legal pawn move:", legal_moves & moving_to_square)
         return legal_moves & moving_to_square

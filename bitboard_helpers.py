@@ -264,7 +264,7 @@ def generate_white_pawn_motion_bb_from_square(square):
 def generate_black_pawn_motion_bb_from_square(square):
     motion_bb = make_empty_uint64_bitmap()
     motion_bb |= HOT << np.uint64(square - 8)
-    if square in Rank.x2:
+    if square in Rank.x7:
         motion_bb |= HOT << np.uint64(square - 16)
     return motion_bb
 
