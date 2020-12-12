@@ -1,6 +1,8 @@
 import numpy as np
 
-from bitboard_helpers import make_empty_uint64_bitmap, set_bit, generate_knight_attack_bb_from_square, pprint_bb
+from bitboard_helpers import make_empty_uint64_bitmap, set_bit, generate_knight_attack_bb_from_square, \
+    generate_rank_attack_bb_from_square, generate_file_attack_bb_from_square, generate_diag_attack_bb_from_square, \
+    generate_king_attack_bb_from_square, generate_pawn_attack_bb_from_square
 from constants import Piece, File, Rank, LIGHT_SQUARES, DARK_SQUARES
 
 BOARD_SIZE = 8
@@ -8,11 +10,45 @@ BOARD_SQUARES = BOARD_SIZE ** 2
 
 
 def _make_knight_attack_bbs():
-    # map of square => bitboard
     knight_attack_map = {}
     for i in range(BOARD_SQUARES):
         knight_attack_map[i] = generate_knight_attack_bb_from_square(i)
     return knight_attack_map
+
+
+def _make_rank_attack_bbs():
+    rank_attack_map = {}
+    for i in range(BOARD_SQUARES):
+        rank_attack_map[i] = generate_rank_attack_bb_from_square(i)
+    return rank_attack_map
+
+
+def _make_file_attack_bbs():
+    file_attack_map = {}
+    for i in range(BOARD_SQUARES):
+        file_attack_map[i] = generate_file_attack_bb_from_square(i)
+    return file_attack_map
+
+
+def _make_diag_attack_bbs():
+    diag_attack_map = {}
+    for i in range(BOARD_SQUARES):
+        diag_attack_map[i] = generate_diag_attack_bb_from_square(i)
+    return diag_attack_map
+
+
+def _make_king_attack_bbs():
+    king_attack_map = {}
+    for i in range(BOARD_SQUARES):
+        king_attack_map[i] = generate_king_attack_bb_from_square(i)
+    return king_attack_map
+
+
+def _make_pawn_attack_bbs():
+    pawn_attack_map = {}
+    for i in range(BOARD_SQUARES):
+        pawn_attack_map[i] = generate_pawn_attack_bb_from_square(i)
+    return pawn_attack_map
 
 
 class Board:
