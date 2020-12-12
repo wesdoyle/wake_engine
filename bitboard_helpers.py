@@ -72,7 +72,7 @@ def bitscan_reverse(bitboard):
 # -------------------------------------------------------------
 
 def set_bit(bitboard, bit):
-    return bitboard | np.uint64(1) << np.uint64(bit)
+    return np.uint64(bitboard | np.uint64(1) << np.uint64(bit))
 
 
 def clear_bit(bitboard, bit):
@@ -107,10 +107,16 @@ def pprint_bb(bitboard, board_size=8):
 #  ATTACK PATTERNS
 # -------------------------------------------------------------
 
+
 def generate_knight_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
     for i in [0, 6, 15, 17, 10, -6, -15, -17, -10]:
         attack_bb |= set_bit(attack_bb, square + i)
+        # Mask of wrapping
+        if square in (File.B | File.A):
+            attack_bb &= ~(np.uint64(File.hexG | File.hexH))
+        if square in (File.G | File.H):
+            attack_bb &= ~(np.uint64(File.hexA | File.hexB))
     return attack_bb
 
 

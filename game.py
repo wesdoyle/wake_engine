@@ -2,7 +2,7 @@ from position import Position
 
 """
 notes:
-    - Game as stack of Positions
+    - Game as stack of FENs 
     - each move pushes a position onto the stack
 """
 
