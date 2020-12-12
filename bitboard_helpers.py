@@ -150,6 +150,7 @@ def generate_file_attack_bb_from_square(square):
 def generate_diag_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
     hot = np.uint64(1)
+    original_square = square
 
     # Diagonal
     if square % 8 == 0:
@@ -158,7 +159,9 @@ def generate_diag_attack_bb_from_square(square):
     while not square % 8 == 0:
         attack_bb |= hot << np.uint64(square)
         square += 9
-    # Anti-Diagonal
+
+    square = original_square
+
     if square % 8 == 0:
         attack_bb |= hot << np.uint64(square)
         square -= 9
@@ -167,6 +170,28 @@ def generate_diag_attack_bb_from_square(square):
             attack_bb |= hot << np.uint64(square)
             square -= 9
         attack_bb |= hot << np.uint64(square)
+
+    square = original_square
+
+    # Diagonal
+    if square % 8 == 0:
+        attack_bb |= hot << np.uint64(square)
+        square += 7
+    while not square % 8 == 0:
+        attack_bb |= hot << np.uint64(square)
+        square += 7
+
+    square = original_square
+
+    if square % 8 == 0:
+        attack_bb |= hot << np.uint64(square)
+        square -= 7
+    else:
+        while not square % 8 == 0:
+            attack_bb |= hot << np.uint64(square)
+            square -= 7
+        attack_bb |= hot << np.uint64(square)
+
     return attack_bb
 
 
