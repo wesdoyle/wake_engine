@@ -105,8 +105,8 @@ class Position:
         # If its a king, lookup if move.to & with the knight attack bb
 
         # If its sliding, lookup if move.to &:
-        # if own, square up to bni bitscanned find in the ray direction
-        # if opp, square up to inc bitscanned find in the ray direction, capture
+        # if own, square up to bni bit-scanned find in the ray direction
+        # if opp, square up to inc bit-scanned find in the ray direction, capture
 
     def is_legal_knight_move(self, move, bb):
         legal_knight_moves = self.board.get_knight_attack_from(move.from_sq)
@@ -122,6 +122,14 @@ class Position:
         return True
 
     def is_legal_pawn_move(self, move, bb):
+        """
+        Legal Pawn Moves:
+        - Pawn non-attacks that don't intersect with occupied squares
+        - Pawn attacks that intersect with opponent pieces
+        :param move: The proposed move
+        :param bb: An empty bitboard
+        :return: (bool) is a legal pawn move
+        """
         move_square_bb = set_bit(bb, move.to_sq)
 
         legal_non_attack_moves = {
@@ -129,12 +137,24 @@ class Position:
             Color.BLACK: self.board.black_pawn_motion_bbs
         }
 
+        legal_non_attack_moves &= self.board.empty_squares_bb
+
         legal_attack_moves = {
             Color.WHITE: self.board.white_pawn_attack_bbs,
             Color.BLACK: self.board.black_pawn_attack_bbs
         }
 
-        legal_moves = legal_non_attack_moves[self.to_move] \
-                      | legal_attack_moves[self.to_move]
+        opp_occupied = {
+            Color.WHITE: self.board.black_pieces_bb,
+            Color.BLACK: self.board.white_pieces_bb
+        }
+
+        legal_attack_moves &= opp_occupied
+
+        en_passant_bb = set_bit(bb, self.en_passant_target)
+
+        en_passant_move = legal_attack_moves[self.to_move] & en_passant_bb
+
+        legal_moves = legal_non_attack_moves[self.to_move] | legal_attack_moves[self.to_move] | en_passant_move
 
         return legal_moves & move_square_bb
