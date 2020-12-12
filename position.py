@@ -68,7 +68,7 @@ class Position:
         self.halfmove_clock += 1
 
         # Data flows from MakeMove -> Position -> BitBoard -> Search
-        self.board.update_position(self.piece_map)
+        self.board.update_bitboards(self.piece_map)
 
         self.to_move = not self.to_move
 

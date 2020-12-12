@@ -208,49 +208,49 @@ def generate_black_pawn_attack_bb_from_square(square):
 #  ATTACK PATTERN MAPS
 # -------------------------------------------------------------
 
-def _make_knight_attack_bbs():
+def make_knight_attack_bbs():
     knight_attack_map = {}
     for i in range(BOARD_SQUARES):
         knight_attack_map[i] = generate_knight_attack_bb_from_square(i)
     return knight_attack_map
 
 
-def _make_rank_attack_bbs():
+def make_rank_attack_bbs():
     rank_attack_map = {}
     for i in range(BOARD_SQUARES):
         rank_attack_map[i] = generate_rank_attack_bb_from_square(i)
     return rank_attack_map
 
 
-def _make_file_attack_bbs():
+def make_file_attack_bbs():
     file_attack_map = {}
     for i in range(BOARD_SQUARES):
         file_attack_map[i] = generate_file_attack_bb_from_square(i)
     return file_attack_map
 
 
-def _make_diag_attack_bbs():
+def make_diag_attack_bbs():
     diag_attack_map = {}
     for i in range(BOARD_SQUARES):
         diag_attack_map[i] = generate_diag_attack_bb_from_square(i)
     return diag_attack_map
 
 
-def _make_king_attack_bbs():
+def make_king_attack_bbs():
     king_attack_map = {}
     for i in range(BOARD_SQUARES):
         king_attack_map[i] = generate_king_attack_bb_from_square(i)
     return king_attack_map
 
 
-def _make_white_pawn_attack_bbs():
+def make_white_pawn_attack_bbs():
     white_pawn_attack_map = {}
     for i in range(Square.A2, Square.A8):
         white_pawn_attack_map[i] = generate_white_pawn_attack_bb_from_square(i)
     return white_pawn_attack_map
 
 
-def _make_black_pawn_attack_bbs():
+def make_black_pawn_attack_bbs():
     black_pawn_attack_map = {}
     for i in range(Square.A2, Square.A8):
         black_pawn_attack_map[i] = generate_black_pawn_attack_bb_from_square(i)

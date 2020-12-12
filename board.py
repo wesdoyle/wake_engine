@@ -1,7 +1,7 @@
 import numpy as np
 
-from bitboard_helpers import make_empty_uint64_bitmap, set_bit, _make_knight_attack_bbs, _make_king_attack_bbs, \
-    _make_white_pawn_attack_bbs, _make_black_pawn_attack_bbs, file_h_bb, file_a_bb
+from bitboard_helpers import make_empty_uint64_bitmap, set_bit, make_knight_attack_bbs, make_king_attack_bbs, \
+    make_white_pawn_attack_bbs, make_black_pawn_attack_bbs, file_h_bb, file_a_bb
 from constants import Piece
 
 BOARD_SIZE = 8
@@ -31,10 +31,10 @@ class Board:
         self.init_pieces()
 
         # static bitboards
-        self.knight_bbs = _make_knight_attack_bbs()
-        self.king_attack_bbs = _make_king_attack_bbs()
-        self.white_pawn_attack_bbs = _make_white_pawn_attack_bbs()
-        self.black_pawn_attack_bbs = _make_black_pawn_attack_bbs()
+        self.knight_bbs = make_knight_attack_bbs()
+        self.king_attack_bbs = make_king_attack_bbs()
+        self.white_pawn_attack_bbs = make_white_pawn_attack_bbs()
+        self.black_pawn_attack_bbs = make_black_pawn_attack_bbs()
 
     # -------------------------------------------------------------
     #  BITBOARD ACCESS: PIECE LOCATIONS
@@ -120,10 +120,9 @@ class Board:
     #  BOARD UPDATES
     # -------------------------------------------------------------
 
-    def update_position(self, piece_map):
+    def update_bitboards(self, piece_map):
         for key, val in piece_map.items():
-
-            # TODO inefficient
+            # TODO: make more efficient by storing and updating the piece group that changed
 
             # White Pieces
             if key == Piece.wP:
