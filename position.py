@@ -1,8 +1,11 @@
 from bitboard_helpers import set_bit
 from board import Board
-from constants import Color, Piece
+from constants import Color, Piece, Rank
 from move import Move
 import numpy as np
+
+# TODO: possible side-effects from mutating move all over
+#  the place in move legality checking
 
 
 def generate_fen():
@@ -130,7 +133,7 @@ class Position:
         :param bb: An empty bitboard
         :return: (bool) is a legal pawn move
         """
-        move_square_bb = set_bit(bb, move.to_sq)
+        moving_to_square = set_bit(bb, move.to_sq)
 
         legal_non_attack_moves = {
             Color.WHITE: self.board.white_pawn_motion_bbs,
@@ -157,4 +160,15 @@ class Position:
 
         legal_moves = legal_non_attack_moves[self.to_move] | legal_attack_moves[self.to_move] | en_passant_move
 
-        return legal_moves & move_square_bb
+        if moving_to_square & legal_attack_moves[self.to_move]:
+            move.is_capture = True
+
+        promotion_rank = {
+            Color.WHITE: Rank.hex8,
+            Color.BLACK: Rank.hex1
+        }
+
+        if moving_to_square & promotion_rank[self.to_move]:
+            move.is_promotion = True
+
+        return legal_moves & moving_to_square
