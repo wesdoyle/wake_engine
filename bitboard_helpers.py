@@ -2,6 +2,8 @@ import string
 
 import numpy as np
 
+from constants import File
+
 
 def make_empty_uint64_bitmap():
     """
@@ -165,11 +167,22 @@ def generate_diag_attack_bb_from_square(square):
             attack_bb |= hot << np.uint64(square)
             square -= 9
         attack_bb |= hot << np.uint64(square)
+    return attack_bb
 
 
 def generate_king_attack_bb_from_square(square):
-    bitmap = make_empty_uint64_bitmap()
-    pass
+    attack_bb = make_empty_uint64_bitmap()
+    hot = np.uint64(1)
+    for i in [0, 8, -8]:
+        # North-South
+        attack_bb |= hot << np.uint64(square + i)
+    for i in [1, 9, -7]:
+        # East (mask the A file)
+        attack_bb |= hot << np.uint64(square + i) & ~np.uint64(File.A)
+    for i in [-1, -9, 7]:
+        # West (mask the H file)
+        attack_bb |= hot << np.uint64(square + i) & ~np.uint64(File.H)
+    return attack_bb
 
 
 def generate_pawn_attack_bb_from_square(square):
