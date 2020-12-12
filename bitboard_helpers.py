@@ -7,9 +7,6 @@ from constants import File, HOT, Square, Rank, DARK_SQUARES, LIGHT_SQUARES
 
 
 def make_empty_uint64_bitmap():
-    """
-    Returns a numpy uint64 zero value
-    """
     return np.uint64(0)
 
 
@@ -186,6 +183,17 @@ def generate_king_attack_bb_from_square(square):
     return attack_bb
 
 
+def generate_queen_attack_bb_from_square(square):
+    return generate_diag_attack_bb_from_square(square) \
+           | generate_file_attack_bb_from_square(square) \
+           | generate_rank_attack_bb_from_square(square)
+
+
+def generate_rook_attack_bb_from_square(square):
+    return generate_file_attack_bb_from_square(square) \
+           | generate_rank_attack_bb_from_square(square)
+
+
 def generate_white_pawn_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
     # Northeast (mask the A file)
@@ -202,6 +210,22 @@ def generate_black_pawn_attack_bb_from_square(square):
     # Southwest (mask the H file)
     attack_bb |= HOT << np.uint64(square - 7) & ~np.uint64(File.H)
     return attack_bb
+
+
+def generate_white_pawn_motion_bb_from_square(square):
+    motion_bb = make_empty_uint64_bitmap()
+    motion_bb |= HOT << np.uint64(square + 8)
+    if square in Rank.x2:
+        motion_bb |= HOT << np.uint64(square + 16)
+    return motion_bb
+
+
+def generate_black_pawn_motion_bb_from_square(square):
+    motion_bb = make_empty_uint64_bitmap()
+    motion_bb |= HOT << np.uint64(square - 8)
+    if square in Rank.x2:
+        motion_bb |= HOT << np.uint64(square - 16)
+    return motion_bb
 
 
 # -------------------------------------------------------------
@@ -243,6 +267,20 @@ def make_king_attack_bbs():
     return king_attack_map
 
 
+def make_queen_attack_bbs():
+    queen_attack_map = {}
+    for i in range(BOARD_SQUARES):
+        queen_attack_map[i] = generate_queen_attack_bb_from_square(i)
+    return queen_attack_map
+
+
+def make_rook_attack_bbs():
+    rook_attack_map = {}
+    for i in range(BOARD_SQUARES):
+        rook_attack_map[i] = generate_rook_attack_bb_from_square(i)
+    return rook_attack_map
+
+
 def make_white_pawn_attack_bbs():
     white_pawn_attack_map = {}
     for i in range(Square.A2, Square.A8):
@@ -255,6 +293,20 @@ def make_black_pawn_attack_bbs():
     for i in range(Square.A2, Square.A8):
         black_pawn_attack_map[i] = generate_black_pawn_attack_bb_from_square(i)
     return black_pawn_attack_map
+
+
+def make_white_pawn_motion_bbs():
+    white_pawn_motion_map = {}
+    for i in range(Square.A2, Square.A8):
+        white_pawn_motion_map[i] = generate_white_pawn_motion_bb_from_square(i)
+    return white_pawn_motion_map
+
+
+def make_black_pawn_motion_bbs():
+    black_pawn_motion_map = {}
+    for i in range(Square.A2, Square.A8):
+        black_pawn_motion_map[i] = generate_black_pawn_motion_bb_from_square(i)
+    return black_pawn_motion_map
 
 
 # -------------------------------------------------------------
