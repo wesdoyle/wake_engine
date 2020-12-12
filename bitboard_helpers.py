@@ -25,7 +25,7 @@ def get_binary_string(bitboard, board_squares=64):
 # -------------------------------------------------------------
 
 def bitscan_forward(bitboard):
-    """ Scans from A1 until we hit a hot bit """
+    """ Scans from A1 until we hit a HOT bit """
     i = 1
     while not (bitboard >> np.uint64(i)) % 2:
         i += 1
@@ -127,86 +127,90 @@ def generate_rank_attack_bb_from_square(square):
 
 def generate_file_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
-    hot = np.uint64(1)
     # East
     if not square % 8:
-        attack_bb |= hot << np.uint64(square)
+        attack_bb |= HOT << np.uint64(square)
         square += 1
     while not square % 8 == 0:
-        attack_bb |= hot << np.uint64(square)
+        attack_bb |= HOT << np.uint64(square)
         square += 1
     # West
     if square % 8 == 0:
-        attack_bb |= hot << np.uint64(square)
+        attack_bb |= HOT << np.uint64(square)
         square -= 1
     else:
         while not square % 8 == 0:
-            attack_bb |= hot << np.uint64(square)
+            attack_bb |= HOT << np.uint64(square)
             square -= 1
-        attack_bb |= hot << np.uint64(square)
+        attack_bb |= HOT << np.uint64(square)
     return attack_bb
 
 
 def generate_diag_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
-    hot = np.uint64(1)
     original_square = square
 
-    # Diagonal
+    # NorthEast
     if square % 8 == 0:
-        attack_bb |= hot << np.uint64(square)
+        attack_bb |= HOT << np.uint64(square)
         square += 9
+
     while not square % 8 == 0:
-        attack_bb |= hot << np.uint64(square)
+        attack_bb |= HOT << np.uint64(square)
         square += 9
 
     square = original_square
 
+    # SouthWest
     if square % 8 == 0:
-        attack_bb |= hot << np.uint64(square)
+        attack_bb |= HOT << np.uint64(square)
         square -= 9
+
     else:
         while not square % 8 == 0:
-            attack_bb |= hot << np.uint64(square)
+            attack_bb |= HOT << np.uint64(square)
             square -= 9
-        attack_bb |= hot << np.uint64(square)
+        attack_bb |= HOT << np.uint64(square)
 
     square = original_square
 
-    # Diagonal
-    if square % 8 == 0:
-        attack_bb |= hot << np.uint64(square)
+    # NorthWest
+    if square % 8 == 0 and square not in File.A:
+        attack_bb |= HOT << np.uint64(square)
         square += 7
-    while not square % 8 == 0:
-        attack_bb |= hot << np.uint64(square)
+
+    while not square % 8 == 0 and square not in File.A:
+        attack_bb |= HOT << np.uint64(square)
         square += 7
+
+    attack_bb |= HOT << np.uint64(square)
 
     square = original_square
 
-    if square % 8 == 0:
-        attack_bb |= hot << np.uint64(square)
+    # SouthEast
+    if square % 8 == 0 and square not in File.H:
+        attack_bb |= HOT << np.uint64(square)
         square -= 7
-    else:
-        while not square % 8 == 0:
-            attack_bb |= hot << np.uint64(square)
-            square -= 7
-        attack_bb |= hot << np.uint64(square)
+
+    while not square % 8 == 0 and square not in File.H:
+        attack_bb |= HOT << np.uint64(square)
+        square -= 7
+    attack_bb |= HOT << np.uint64(square)
 
     return attack_bb
 
 
 def generate_king_attack_bb_from_square(square):
     attack_bb = make_empty_uint64_bitmap()
-    hot = np.uint64(1)
     for i in [0, 8, -8]:
         # North-South
-        attack_bb |= hot << np.uint64(square + i)
+        attack_bb |= HOT << np.uint64(square + i)
     for i in [1, 9, -7]:
         # East (mask the A file)
-        attack_bb |= hot << np.uint64(square + i) & ~np.uint64(File.hexA)
+        attack_bb |= HOT << np.uint64(square + i) & ~np.uint64(File.hexA)
     for i in [-1, -9, 7]:
         # West (mask the H file)
-        attack_bb |= hot << np.uint64(square + i) & ~np.uint64(File.hexH)
+        attack_bb |= HOT << np.uint64(square + i) & ~np.uint64(File.hexH)
     return attack_bb
 
 

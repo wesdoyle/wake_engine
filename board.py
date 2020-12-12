@@ -30,7 +30,7 @@ class Board:
 
         # static bitboards
         self.knight_attack_bbs = make_knight_attack_bbs()
-        self.bishop_bbs = make_diag_attack_bbs()
+        self.bishop_attack_bbs = make_diag_attack_bbs()
         self.king_attack_bbs = make_king_attack_bbs()
         self.rook_attack_bbs = make_rook_attack_bbs()
         self.queen_attack_bbs = make_queen_attack_bbs()
@@ -195,7 +195,7 @@ class Board:
     # -------------------------------------------------------------
 
     def get_bishop_attack_from(self, square):
-        return self.bishop_bbs[square]
+        return self.bishop_attack_bbs[square]
 
     def get_rook_attack_from(self, square):
         return self.rook_attack_bbs[square]
