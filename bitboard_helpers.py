@@ -185,48 +185,48 @@ def generate_diag_attack_bb_from_square(square):
     return attack_bb
 
 
-def get_southeast_ray(attack_bb, square):
-    if square % 8 == 0 and square not in File.H:
-        attack_bb |= HOT << np.uint64(square)
-        square -= 7
-    while not square % 8 == 0 and square not in File.H:
-        attack_bb |= HOT << np.uint64(square)
-        square -= 7
-    attack_bb |= HOT << np.uint64(square)
-    return attack_bb
+def get_southeast_ray(bitboard, from_square):
+    if from_square % 8 == 0 and from_square not in File.H:
+        bitboard |= HOT << np.uint64(from_square)
+        from_square -= 7
+    while not from_square % 8 == 0 and from_square not in File.H:
+        bitboard |= HOT << np.uint64(from_square)
+        from_square -= 7
+    bitboard |= HOT << np.uint64(from_square)
+    return bitboard
 
 
-def get_northwest_ray(attack_bb, square):
+def get_northwest_ray(bitboard, square):
     if square % 8 == 0 and square not in File.A:
-        attack_bb |= HOT << np.uint64(square)
+        bitboard |= HOT << np.uint64(square)
         square += 7
     while not square % 8 == 0 and square not in File.A:
-        attack_bb |= HOT << np.uint64(square)
+        bitboard |= HOT << np.uint64(square)
         square += 7
-    attack_bb |= HOT << np.uint64(square)
-    return attack_bb
+    bitboard |= HOT << np.uint64(square)
+    return bitboard
 
 
-def get_southwest_ray(attack_bb, square):
+def get_southwest_ray(bitboard, square):
     if square % 8 == 0:
-        attack_bb |= HOT << np.uint64(square)
+        bitboard |= HOT << np.uint64(square)
         square -= 9
     else:
         while not square % 8 == 0:
-            attack_bb |= HOT << np.uint64(square)
+            bitboard |= HOT << np.uint64(square)
             square -= 9
-        attack_bb |= HOT << np.uint64(square)
-    return attack_bb
+        bitboard |= HOT << np.uint64(square)
+    return bitboard
 
 
-def get_northeast_ray(attack_bb, square):
+def get_northeast_ray(bitboard, square):
     if square % 8 == 0:
-        attack_bb |= HOT << np.uint64(square)
+        bitboard |= HOT << np.uint64(square)
         square += 9
     while not square % 8 == 0:
-        attack_bb |= HOT << np.uint64(square)
+        bitboard |= HOT << np.uint64(square)
         square += 9
-    return attack_bb
+    return bitboard
 
 
 # -------------------------------------------------------------

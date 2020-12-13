@@ -1,4 +1,5 @@
-from bitboard_helpers import set_bit
+from bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
+    get_southwest_ray, get_southeast_ray
 from board import Board
 from constants import Color, Piece, Rank
 from move import Move
@@ -7,10 +8,6 @@ import numpy as np
 
 # TODO: possible side-effects from mutating move all over
 #  the place in move legality checking
-
-# TODO: On illegal move, it looks like we're resetting to starting position
-
-# TODO: Bugfix pawn motion after first pawn move
 
 def generate_fen():
     """ TODO: Generate FEN for the current state """
@@ -113,7 +110,7 @@ class Position:
             # if not in the static attack map return False
             return self.is_legal_knight_move(move, bb)
 
-        if move.piece in {Piece.wP,  Piece.bP}:
+        if move.piece in {Piece.wP, Piece.bP}:
             return self.is_legal_pawn_move(move, bb)
 
         print("Uncaught illegal move")
@@ -137,6 +134,55 @@ class Position:
             move.is_capture = True
             return True
         return True
+
+    def is_legal_bishop_move(self, move, bb):
+        """
+        Implements the classical approach for determining legal sliding-piece moves
+        for diagonal directions. Gets first blocker with forward or reverse bitscan
+        based on the ray direction and XORs the open board ray with the ray continuation
+        from the blocked square.
+        :param move:
+        :param bb:
+        :return:
+        """
+        # TODO: immediately make illegal if attacks own
+        # northwest attack route
+        occupied = self.board.occupied_squares_bb
+        northwest_ray = get_northwest_ray(bb, move.from_sq)
+        intersection = occupied & northwest_ray
+        if intersection:
+            first_blocker = bitscan_forward(intersection)
+            block_ray = get_northwest_ray(bb, first_blocker)
+            northwest_ray ^= block_ray
+
+        # northeast route
+        occupied = self.board.occupied_squares_bb
+        northeast_ray = get_northeast_ray(bb, move.from_sq)
+        intersection = occupied & northeast_ray
+        if intersection:
+            first_blocker = bitscan_forward(intersection)
+            block_ray = get_northeast_ray(bb, first_blocker)
+            northeast_ray ^= block_ray
+
+        # southwest route
+        occupied = self.board.occupied_squares_bb
+        southwest_ray = get_southwest_ray(bb, move.from_sq)
+        intersection = occupied & southwest_ray
+        if intersection:
+            first_blocker = bitscan_reverse(intersection)
+            block_ray = get_southwest_ray(bb, first_blocker)
+            southwest_ray ^= block_ray
+
+        # southeast route
+        occupied = self.board.occupied_squares_bb
+        southeast_ray = get_southeast_ray(bb, move.from_sq)
+        intersection = occupied & southeast_ray
+        if intersection:
+            first_blocker = bitscan_reverse(intersection)
+            block_ray = get_southeast_ray(bb, first_blocker)
+            southeast_ray ^= block_ray
+
+        return move.to_sq & (northwest_ray | northeast_ray | southwest_ray | southeast_ray)
 
     def is_legal_pawn_move(self, move, bb):
         """
