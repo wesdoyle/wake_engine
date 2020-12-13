@@ -8,15 +8,29 @@ BOARD_SIZE = 8
 BOARD_SQUARES = BOARD_SIZE ** 2
 
 
-def make_uint64():
+def make_uint64() -> np.uint64:
+    """
+    :return: an np.uint64 zero
+    """
     return np.uint64(0)
 
 
-def get_bitboard_as_bytes(bitboard):
+def get_bitboard_as_bytes(bitboard: np.uint64) -> bytes:
+    """
+    Returns the provided bitboard as Python bytes representation
+    :param bitboard:
+    :return:
+    """
     return bitboard.tobytes()
 
 
-def get_binary_string(bitboard, board_squares=64):
+def get_binary_string(bitboard: np.uint64, board_squares: int = 64) -> str:
+    """
+    Returns the binary string representation of the provided bitboard
+    :param bitboard: the bitboard to be represented
+    :param board_squares: the number of squares in the bitboard
+    :return: string representation of the provided n**2 (board_squares) bitboard
+    """
     return format(bitboard, 'b').zfill(board_squares)
 
 
@@ -24,20 +38,26 @@ def get_binary_string(bitboard, board_squares=64):
 # BIT QUERYING
 # -------------------------------------------------------------
 
-def bitscan_forward(bitboard):
-    """ Scans from A1 until we hit a HOT bit """
+def bitscan_forward(bitboard: np.uint64) -> np.uint64:
+    """
+    Returns the least significant one bit from the provided bitboard
+    :param bitboard: bitboard to can
+    :return: np.uint64 least significant one bit
+    """
     i = 1
     while not (bitboard >> np.uint64(i)) % 2:
         i += 1
     return i
 
 
-def bitscan_reverse(bitboard):
-    # bitScanReverse
-    # @author Eugene Nalimov
-    # @param bb bitboard to scan
-    # @return index (0..63) of most significant one bit
-    #
+def bitscan_reverse(bitboard: np.uint64) -> np.uint64:
+    """
+    @author Eugene Nalimov
+    @return index (0..63) of most significant one bit
+    :param bitboard: bitboard to scan
+    :return: np.uint64 most significant one bit
+    """
+
     def lookup_most_significant_1_bit(bit: np.uint64) -> np.uint64:
         if bit > np.uint64(127): return np.uint64(7)
         if bit > np.uint64(63):  return np.uint64(6)
@@ -71,11 +91,23 @@ def bitscan_reverse(bitboard):
 # BIT MANIPULATION
 # -------------------------------------------------------------
 
-def set_bit(bitboard, bit):
+def set_bit(bitboard: np.uint64, bit: int or np.uint64) -> np.uint64:
+    """
+    Sets a bit in the provided unsigned 64-bit integer bitboard representation to 1
+    :param bitboard: np.uint64 number
+    :param bit: the binary index to turn hot
+    :return: a copy of the bitboard with the specified `bit` set to 1
+    """
     return np.uint64(bitboard | np.uint64(1) << np.uint64(bit))
 
 
 def clear_bit(bitboard, bit):
+    """
+    Sets a bit in the provided unsigned 64-bit integer bitboard representation to 0
+    :param bitboard: np.uint64 number
+    :param bit: the binary index to turn off
+    :return: a copy of the bitboard with the specified `bit` set to 0
+    """
     return bitboard & ~(np.uint64(1) << np.uint64(bit))
 
 
@@ -83,7 +115,13 @@ def clear_bit(bitboard, bit):
 # DEBUG PRETTY PRINT
 # -------------------------------------------------------------
 
-def pprint_bb(bitboard, board_size=8):
+def pprint_bb(bitboard: np.uint64, board_size: int = 8) -> None:
+    """
+    Pretty-prints the given bitboard as 8 x 8 chess board
+    :param bitboard: the bitboard to pretty-print
+    :param board_size: the length of the square board
+    :return: None
+    """
     bitboard = get_binary_string(bitboard)
     val = ''
     display_rank = board_size
@@ -103,12 +141,12 @@ def pprint_bb(bitboard, board_size=8):
     print(val)
 
 
-def pprint_pieces(piece_map, board_size=8):
+def pprint_pieces(piece_map: dict[string, set], board_size: int = 8) -> None:
     """
-    Given a piece map, prints the board using Unicode Chess Symbols
-    :param piece_map:
-    :param board_size:
-    :return:
+    Prints the given piece map as 8 x 8 chess board using Unicode chess symbols
+    :param piece_map: Python dictionary of piece to set of square indices
+    :param board_size: the length of the square board
+    :return: None
     """
     board = ['░'] * 64
     for piece, squares in piece_map.items():
@@ -133,97 +171,93 @@ def pprint_pieces(piece_map, board_size=8):
 #  ATTACK PATTERNS: KNIGHT
 # -------------------------------------------------------------
 
-def generate_knight_attack_bb_from_square(square):
+def generate_knight_attack_bb_from_square(from_square: int) -> np.uint64:
+    """
+    Generates a static bitboard of squares attacked by a knight from the provided `square`
+    :param from_square: square index of the knight from which to generate attack squares bitboard
+    :return: np.uint64 bitboard of attacked squares by a knight on the provided `square`
+    """
     attack_bb = make_uint64()
     for i in [6, 15, 17, 10, -6, -15, -17, -10]:
-        attack_bb |= set_bit(attack_bb, square + i)
+        attack_bb |= set_bit(attack_bb, from_square + i)
         # Mask of wrapping
-        if square in (File.B | File.A):
+        if from_square in (File.B | File.A):
             attack_bb &= ~(np.uint64(File.hexG | File.hexH))
-        if square in (File.G | File.H):
+        if from_square in (File.G | File.H):
             attack_bb &= ~(np.uint64(File.hexA | File.hexB))
     return attack_bb
 
 
 # -------------------------------------------------------------
-#  ATTACK PATTERNS: ROOK
+#  SLIDING ATTACK PATTERNS
 # -------------------------------------------------------------
 
-def get_south_ray(bitboard, square):
+def get_south_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
+    """
+    Returns a bitboard of south sliding piece attacked squares on an otherwise empty board
+    :param bitboard: The bitboard representing the south ray sliding attacks from `square`
+    :param from_square: The square from a south-sliding piece attacks
+    :return: np.uint64 bitboard of the southern squares attacked on an otherwise empty board
+    """
     for i in range(0, -64, -8):
-        bitboard |= set_bit(bitboard, square + i)
-    bitboard = clear_bit(bitboard, square)
+        bitboard |= set_bit(bitboard, from_square + i)
+    bitboard = clear_bit(bitboard, from_square)
     return bitboard
 
 
-def get_north_ray(bitboard, square):
+def get_north_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
+    """
+    Returns a bitboard of north sliding piece attacked squares on an otherwise empty board
+    :param bitboard: The bitboard representing the north ray sliding attacks from `square`
+    :param from_square: The square from a north-sliding piece attacks
+    :return: np.uint64 bitboard of the northern squares attacked on an otherwise empty board
+    """
     for i in range(0, 64, 8):
-        bitboard |= set_bit(bitboard, square + i)
+        bitboard |= set_bit(bitboard, from_square + i)
     return bitboard
 
 
-def get_west_ray(bitboard, square):
-    if square % 8 == 0:
-        bitboard |= HOT << np.uint64(square)
-        square -= 1
+def get_west_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
+    """
+    Returns a bitboard of west sliding piece attacked squares on an otherwise empty board
+    :param bitboard: The bitboard representing the west ray sliding attacks from `square`
+    :param from_square: The square from a west-sliding piece attacks
+    :return: np.uint64 bitboard of the western squares attacked on an otherwise empty board
+    """
+    if from_square % 8 == 0:
+        bitboard |= HOT << np.uint64(from_square)
+        from_square -= 1
     else:
-        while not square % 8 == 0:
-            bitboard |= HOT << np.uint64(square)
-            square -= 1
-        bitboard |= HOT << np.uint64(square)
+        while not from_square % 8 == 0:
+            bitboard |= HOT << np.uint64(from_square)
+            from_square -= 1
+        bitboard |= HOT << np.uint64(from_square)
     return bitboard
 
 
-def get_east_ray(bitboard, square):
-    if not square % 8:
-        bitboard |= HOT << np.uint64(square)
-        square += 1
-    while not square % 8 == 0:
-        bitboard |= HOT << np.uint64(square)
-        square += 1
+def get_east_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
+    """
+    Returns a bitboard of east sliding piece attacked squares on an otherwise empty board
+    :param bitboard: The bitboard representing the east ray sliding attacks from `square`
+    :param from_square: The square from a east-sliding piece attacks
+    :return: np.uint64 bitboard of the eastern squares attacked on an otherwise empty board
+    """
+    if not from_square % 8:
+        bitboard |= HOT << np.uint64(from_square)
+        from_square += 1
+    while not from_square % 8 == 0:
+        bitboard |= HOT << np.uint64(from_square)
+        from_square += 1
     return bitboard
 
 
-def generate_rank_attack_bb_from_square(square):
-    attack_bb = make_uint64()
-    attack_bb = get_north_ray(attack_bb, square)
-    attack_bb = get_south_ray(attack_bb, square)
-    attack_bb = clear_bit(attack_bb, square)
-    return attack_bb
-
-
-def generate_file_attack_bb_from_square(square):
-    attack_bb = make_uint64()
-    attack_bb = get_east_ray(attack_bb, square)
-    attack_bb = get_west_ray(attack_bb, square)
-    attack_bb = clear_bit(attack_bb, square)
-    return attack_bb
-
-
-def generate_rook_attack_bb_from_square(square):
-    return generate_file_attack_bb_from_square(square) \
-           | generate_rank_attack_bb_from_square(square)
-
-
-# -------------------------------------------------------------
-#  ATTACK PATTERNS: BISHOP
-# -------------------------------------------------------------
-
-def generate_diag_attack_bb_from_square(square):
-    attack_bb = make_uint64()
-    original_square = square
-
-    attack_bb = get_northeast_ray(attack_bb, square)
-    attack_bb = get_southwest_ray(attack_bb, square)
-    attack_bb = get_northwest_ray(attack_bb, square)
-    attack_bb = get_southeast_ray(attack_bb, square)
-
-    attack_bb = clear_bit(attack_bb, original_square)
-
-    return attack_bb
-
-
-def get_southeast_ray(bitboard, from_square):
+def get_southeast_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
+    """
+    Returns a bitboard of northeast sliding piece attacked squares on an otherwise empty board
+    :param bitboard: The bitboard representing the northeast ray sliding attacks from `square`
+    :param from_square: The square from a northeast-sliding piece attacks
+    :return: np.uint64 bitboard of the northeastern squares attacked on an otherwise empty board
+    """
     if from_square % 8 == 0 and from_square not in File.H:
         bitboard |= HOT << np.uint64(from_square)
         from_square -= 7
@@ -234,47 +268,132 @@ def get_southeast_ray(bitboard, from_square):
     return bitboard
 
 
-def get_northwest_ray(bitboard, square):
-    if square % 8 == 0 and square not in File.A:
-        bitboard |= HOT << np.uint64(square)
-        square += 7
-    while not square % 8 == 0 and square not in File.A:
-        bitboard |= HOT << np.uint64(square)
-        square += 7
-    bitboard |= HOT << np.uint64(square)
+def get_northwest_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
+    """
+    Returns a bitboard of northwest sliding piece attacked squares on an otherwise empty board
+    :param bitboard: The bitboard representing the northwest ray sliding attacks from `square`
+    :param from_square: The square from a northwest-sliding piece attacks
+    :return: np.uint64 bitboard of the northwestern squares attacked on an otherwise empty board
+    """
+    if from_square % 8 == 0 and from_square not in File.A:
+        bitboard |= HOT << np.uint64(from_square)
+        from_square += 7
+    while not from_square % 8 == 0 and from_square not in File.A:
+        bitboard |= HOT << np.uint64(from_square)
+        from_square += 7
+    bitboard |= HOT << np.uint64(from_square)
     return bitboard
 
 
-def get_southwest_ray(bitboard, square):
-    if square % 8 == 0:
-        bitboard |= HOT << np.uint64(square)
-        square -= 9
+def get_southwest_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
+    """
+    Returns a bitboard of southwest sliding piece attacked squares on an otherwise empty board
+    :param bitboard: The bitboard representing the southwest ray sliding attacks from `square`
+    :param from_square: The square from a southwest-sliding piece attacks
+    :return: np.uint64 bitboard of the southwestern squares attacked on an otherwise empty board
+    """
+    if from_square % 8 == 0:
+        bitboard |= HOT << np.uint64(from_square)
+        from_square -= 9
     else:
-        while not square % 8 == 0:
-            bitboard |= HOT << np.uint64(square)
-            square -= 9
-        bitboard |= HOT << np.uint64(square)
+        while not from_square % 8 == 0:
+            bitboard |= HOT << np.uint64(from_square)
+            from_square -= 9
+        bitboard |= HOT << np.uint64(from_square)
     return bitboard
 
 
-def get_northeast_ray(bitboard, square):
-    if square % 8 == 0:
-        bitboard |= HOT << np.uint64(square)
-        square += 9
-    while not square % 8 == 0:
-        bitboard |= HOT << np.uint64(square)
-        square += 9
+def get_northeast_ray(bitboard, from_square):
+    """
+    Returns a bitboard of northeast sliding piece attacked squares on an otherwise empty board
+    :param bitboard: The bitboard representing the northeast ray sliding attacks from `square`
+    :param from_square: The square from a northeast-sliding piece attacks
+    :return: np.uint64 bitboard of the northeastern squares attacked on an otherwise empty board
+    """
+    if from_square % 8 == 0:
+        bitboard |= HOT << np.uint64(from_square)
+        from_square += 9
+    while not from_square % 8 == 0:
+        bitboard |= HOT << np.uint64(from_square)
+        from_square += 9
     return bitboard
+
+
+# -------------------------------------------------------------
+#  ATTACK PATTERNS: ROOK
+# -------------------------------------------------------------
+
+def generate_rank_attack_bb_from_square(square: int) -> np.uint64:
+    """
+    Generates rank attacks from the provided square on an otherwise empty bitboard
+    :param square: starting square from which to generate rank attacks
+    :return: np.uint64 rank attacks bitboard from the provided square
+    """
+    attack_bb = make_uint64()
+    attack_bb = get_north_ray(attack_bb, square)
+    attack_bb = get_south_ray(attack_bb, square)
+    attack_bb = clear_bit(attack_bb, square)
+    return attack_bb
+
+
+def generate_file_attack_bb_from_square(square: int) -> np.uint64:
+    """
+    Generates file attacks from the provided square on an otherwise empty bitboard
+    :param square: starting square from which to generate file attacks
+    :return: np.uint64 file attacks bitboard from the provided square
+    """
+    attack_bb = make_uint64()
+    attack_bb = get_east_ray(attack_bb, square)
+    attack_bb = get_west_ray(attack_bb, square)
+    attack_bb = clear_bit(attack_bb, square)
+    return attack_bb
+
+
+def generate_rook_attack_bb_from_square(square: int) -> np.uint64:
+    """
+    Generates rook attacks from the provided square on an otherwise empty bitboard
+    :param square: starting square from which to generate rook attacks
+    :return: np.uint64 rook attacks bitboard from the provided square
+    """
+    return generate_file_attack_bb_from_square(square) | generate_rank_attack_bb_from_square(square)
+
+
+# -------------------------------------------------------------
+#  ATTACK PATTERNS: BISHOP
+# -------------------------------------------------------------
+
+def generate_diag_attack_bb_from_square(from_square: int) -> np.uint64:
+    """
+    Generates all diagonal attacks from the provided square on an otherwise empty bitboard
+    :param from_square: starting square from which to generate diagonal attacks
+    :return: np.uint64 diagonal attacks bitboard from the provided square
+    """
+    attack_bb = make_uint64()
+    original_square = from_square
+
+    attack_bb = get_northeast_ray(attack_bb, from_square)
+    attack_bb = get_southwest_ray(attack_bb, from_square)
+    attack_bb = get_northwest_ray(attack_bb, from_square)
+    attack_bb = get_southeast_ray(attack_bb, from_square)
+
+    attack_bb = clear_bit(attack_bb, original_square)
+
+    return attack_bb
 
 
 # -------------------------------------------------------------
 #  ATTACK PATTERNS: QUEEN
 # -------------------------------------------------------------
 
-def generate_queen_attack_bb_from_square(square):
-    return generate_diag_attack_bb_from_square(square) \
-           | generate_file_attack_bb_from_square(square) \
-           | generate_rank_attack_bb_from_square(square)
+def generate_queen_attack_bb_from_square(from_square: int) -> np.uint64:
+    """
+    Returns the queen attack bitboard on an otherwise empty board from the provided square
+    :param from_square: starting square from which to generate queen attacks
+    :return:
+    """
+    return generate_diag_attack_bb_from_square(from_square) \
+           | generate_file_attack_bb_from_square(from_square) \
+           | generate_rank_attack_bb_from_square(from_square)
 
 
 # -------------------------------------------------------------
