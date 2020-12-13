@@ -2,9 +2,9 @@ import numpy as np
 
 from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
     get_southwest_ray, get_southeast_ray, get_north_ray, get_east_ray, get_south_ray, \
-    get_west_ray
+    get_west_ray, make_uint64
 from wake.board import Board
-from wake.constants import Color, Piece, Rank
+from wake.constants import Color, Piece, Rank, HOT, File
 from wake.move import Move
 
 
@@ -78,8 +78,8 @@ class Position:
         return generate_fen()
 
     def intersects_with_own_pieces(self, square):
-        bb = np.uint64(0)
-        move_square_bb = set_bit(bb, square)
+        bitboard = make_uint64()
+        move_square_bb = set_bit(bitboard, square)
         occupy_lookup = {
             Color.BLACK: self.board.black_pieces_bb,
             Color.WHITE: self.board.white_pieces_bb,
@@ -87,8 +87,8 @@ class Position:
         return occupy_lookup[self.color_to_move] & move_square_bb
 
     def intersects_with_opp_pieces(self, square):
-        bb = np.uint64(0)
-        move_square_bb = set_bit(bb, square)
+        bitboard = make_uint64()
+        move_square_bb = set_bit(bitboard, square)
         occupy_lookup = {
             Color.WHITE: self.board.black_pieces_bb,
             Color.BLACK: self.board.white_pieces_bb,
@@ -96,6 +96,7 @@ class Position:
         return occupy_lookup[self.color_to_move] & move_square_bb
 
     def is_legal_move(self, move: Move) -> bool:
+
         if self.color_to_move == Color.WHITE and move.piece not in Piece.white_pieces:
             print("That isn't one of your pieces.")
             return False
@@ -120,17 +121,17 @@ class Position:
         if move.piece in {Piece.wR, Piece.bR}:
             return self.is_legal_rook_move(move)
 
+        if move.piece in {Piece.wQ, Piece.bQ}:
+            return self.is_legal_queen_move(move)
+
+        if move.piece in {Piece.wK, Piece.bK}:
+            return self.is_legal_king_move(move)
+
         print("Uncaught illegal move")
         return False
 
-        # If its a king, lookup if move.to & with the knight attack bb
-
-        # If its sliding, lookup if move.to &:
-        # if own, square up to bni bit-scanned find in the ray direction
-        # if opp, square up to inc bit-scanned find in the ray direction, capture
-
-    def is_legal_knight_move(self, move):
-        bitboard = np.uint64(0)
+    def is_legal_knight_move(self, move: Move) -> np.uint64:
+        bitboard = make_uint64()
         legal_knight_moves = self.board.get_knight_attack_from(move.from_sq)
         if not legal_knight_moves & set_bit(bitboard, move.to_sq):
             return False
@@ -143,16 +144,17 @@ class Position:
             return True
         return True
 
-    def is_legal_bishop_move(self, move):
+    def is_legal_bishop_move(self, move: Move) -> np.uint64:
         """
+        Pseudo-Legal Bishop Moves
         Implements the classical approach for determining legal sliding-piece moves
         for diagonal directions. Gets first blocker with forward or reverse bitscan
         based on the ray direction and XORs the open board ray with the ray continuation
         from the blocked square.
-        :param move:
-        :return:
+        :param move: the proposed Move instance
+        :return: True iff Move is legal
         """
-        bitboard = np.uint64(0)
+        bitboard = make_uint64()
         moving_to_square = set_bit(bitboard, move.to_sq)
         occupied = self.board.occupied_squares_bb
 
@@ -202,16 +204,17 @@ class Position:
 
         return legal_moves
 
-    def is_legal_rook_move(self, move):
+    def is_legal_rook_move(self, move: Move) -> bool:
         """
+        Pseudo-Legal Rook Moves
         Implements the classical approach for determining legal sliding-piece moves
         for rank and file directions. Gets first blocker with forward or reverse bitscan
         based on the ray direction and XORs the open board ray with the ray continuation
         from the blocked square.
-        :param move:
-        :return:
+        :param move: the proposed Move instance
+        :return: True iff Move is legal
         """
-        bitboard = np.uint64(0)
+        bitboard = make_uint64()
         moving_to_square = set_bit(bitboard, move.to_sq)
         occupied = self.board.occupied_squares_bb
 
@@ -247,12 +250,12 @@ class Position:
             block_ray = get_southeast_ray(bitboard, first_blocker)
             west_ray ^= block_ray
 
+        legal_moves = moving_to_square & (north_ray | east_ray | south_ray | west_ray)
+
         occupied_squares = {
             Color.BLACK: self.board.black_pieces_bb,
             Color.WHITE: self.board.white_pieces_bb,
         }
-
-        legal_moves = moving_to_square & (north_ray | east_ray | south_ray | west_ray)
 
         # remove own piece targets
         own_piece_targets = occupied_squares[self.color_to_move] & moving_to_square
@@ -261,15 +264,15 @@ class Position:
 
         return legal_moves
 
-    def is_legal_pawn_move(self, move):
+    def is_legal_pawn_move(self, move: Move) -> bool:
         """
-        Legal Pawn Moves:
+        Pseudo-Legal Pawn Moves:
         - Pawn non-attacks that don't intersect with occupied squares
         - Pawn attacks that intersect with opponent pieces
-        :param move: The proposed move
-        :return: (bool) is a legal pawn move
+        :param move: the proposed Move instance
+        :return: True iff Move is legal
         """
-        bitboard = np.uint64(0)
+        bitboard = make_uint64()
         moving_to_square = set_bit(bitboard, move.to_sq)
 
         legal_non_attack_moves = {
@@ -293,14 +296,28 @@ class Position:
 
         legal_moves = legal_non_attack_moves[self.color_to_move] | legal_attack_moves[self.color_to_move]
 
+        # Handle en-passant targets
         if self.en_passant_target:
             en_passant_bb = set_bit(bitboard, self.en_passant_target)
             en_passant_move = legal_attack_moves[self.color_to_move] & en_passant_bb
             legal_moves |= en_passant_move
 
+        # Handle Captures
         if moving_to_square & legal_attack_moves[self.color_to_move]:
             move.is_capture = True
 
+        # Handle removing own piece targets
+        occupied_squares = {
+            Color.BLACK: self.board.black_pieces_bb,
+            Color.WHITE: self.board.white_pieces_bb,
+        }
+
+        own_piece_targets = occupied_squares[self.color_to_move] & moving_to_square
+
+        if own_piece_targets:
+            legal_moves &= ~own_piece_targets
+
+        # Handle promotion
         promotion_rank = {
             Color.WHITE: Rank.hex8,
             Color.BLACK: Rank.hex1
@@ -309,7 +326,44 @@ class Position:
         if moving_to_square & promotion_rank[self.color_to_move]:
             move.is_promotion = True
 
-        print("legal moves:", legal_moves)
-        print("moving_to_square:", moving_to_square)
-        print("legal pawn move:", legal_moves & moving_to_square)
         return legal_moves & moving_to_square
+
+    def is_legal_queen_move(self, move):
+        """
+        Pseudo-Legal Queen Moves:  bitwise OR of legal Bishop moves, Rook moves
+        :param move: the proposed Move instance
+        :return: True iff Move is legal
+        """
+        return self.is_legal_rook_move(move) | self.is_legal_bishop_move(move)
+
+    def is_legal_king_move(self, move):
+        """
+        Pseudo-Legal King Moves: one step in any direction
+        :param move: the proposed Move instance
+        :return: True iff Move is legal
+        """
+        bitboard = make_uint64()
+        moving_to_square = set_bit(bitboard, move.to_sq)
+
+        for i in [8, -8]:
+            # North-South
+            bitboard |= set_bit(bitboard, np.uint64(move.from_sq + i))
+        for i in [1, 9, -7]:
+            # East (mask the A file)
+            bitboard |= set_bit(bitboard, np.uint64(move.from_sq + i) & ~np.uint64(File.hexA))
+        for i in [-1, -9, 7]:
+            # West (mask the H file)
+            bitboard |= set_bit(bitboard, np.uint64(move.from_sq + i) & ~np.uint64(File.hexH))
+
+        occupied_squares = {
+            Color.BLACK: self.board.black_pieces_bb,
+            Color.WHITE: self.board.white_pieces_bb,
+        }
+
+        # remove own piece targets
+        own_piece_targets = occupied_squares[self.color_to_move] & moving_to_square
+
+        if own_piece_targets:
+            bitboard &= ~own_piece_targets
+
+        return bitboard
