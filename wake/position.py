@@ -114,23 +114,48 @@ class Position:
             print("That isn't one of your pieces.")
             return False
 
+    def get_current_attacked_squares(self, move: Move) -> np.uint64:
+        return self.get_legal_pawn_moves_from(move) \
+           | self.get_legal_knight_moves_from(move) \
+           | get_legal_bishop_moves_from(move) \
+           | get_legal_rook_moves_from(move) \
+           | get_legal_queen_moves_from(move) \
+           | get_legal_king_moves_from(move)
+
+    def get_white_attacked_squares(self, move: Move) -> np.uint64:
+        return self.get_legal_pawn_moves_from(move) \
+               | self.get_legal_knight_moves_from(move) \
+               | get_legal_bishop_moves_from(move) \
+               | get_legal_rook_moves_from(move) \
+               | get_legal_queen_moves_from(move) \
+               | get_legal_king_moves_from(move)
+
+    def get_black_attacked_squares(self, move: Move) -> np.uint64:
+        return self.get_legal_pawn_moves_from(move) \
+               | self.get_legal_knight_moves_from(move) \
+               | get_legal_bishop_moves_from(move) \
+               | get_legal_rook_moves_from(move) \
+               | get_legal_queen_moves_from(move) \
+               | get_legal_king_moves_from(move)
+
     # -------------------------------------------------------------
     # LEGAL KNIGHT MOVES
     # -------------------------------------------------------------
 
-    def get_legal_knight_moves_from(self, move: Move) -> np.uint64:
+    def get_legal_knight_moves_from(self, move: Move, color_to_move: int) -> np.uint64:
         """
         Gets the legal knight moves from the given Move instance
         :param move:
+        :param color_to_move:
         :return:
         """
         legal_knight_moves = self.board.get_knight_attack_from(move.from_sq)
 
         # Mask out own pieces
-        if self.color_to_move == Color.WHITE:
+        if color_to_move == Color.WHITE:
             legal_knight_moves &= ~self.board.white_pieces_bb
 
-        if self.color_to_move == Color.BLACK:
+        if color_to_move == Color.BLACK:
             legal_knight_moves &= ~self.board.black_pieces_bb
 
         return legal_knight_moves
@@ -139,7 +164,7 @@ class Position:
     # LEGAL BISHOP MOVES
     # -------------------------------------------------------------
 
-    def get_legal_bishop_moves_from(self, move: Move) -> np.uint64:
+    def get_legal_bishop_moves_from(self, move: Move, color_to_move: int) -> np.uint64:
         """
         Pseudo-Legal Bishop Moves
         Implements the classical approach for determining legal sliding-piece moves
@@ -147,6 +172,7 @@ class Position:
         based on the ray direction and XORs the open board ray with the ray continuation
         from the blocked square.
         :param move: the proposed Move instance
+        :param color_to_move: the current color to move
         :return: True iff Move is legal
         """
         bitboard = make_uint64()
@@ -184,7 +210,7 @@ class Position:
         legal_moves = moving_to_square & (northwest_ray | northeast_ray | southwest_ray | southeast_ray)
 
         # remove own piece targets
-        own_piece_targets = self.get_occupied_squares_by_color[self.color_to_move] & moving_to_square
+        own_piece_targets = self.get_occupied_squares_by_color[color_to_move] & moving_to_square
         if own_piece_targets:
             legal_moves &= ~own_piece_targets
 
@@ -194,7 +220,7 @@ class Position:
     # LEGAL ROOK MOVES
     # -------------------------------------------------------------
 
-    def get_legal_rook_moves_from(self, move: Move) -> np.uint64:
+    def get_legal_rook_moves_from(self, move: Move, color_to_move: int) -> np.uint64:
         """
         Pseudo-Legal Rook Moves
         Implements the classical approach for determining legal sliding-piece moves
@@ -202,6 +228,7 @@ class Position:
         based on the ray direction and XORs the open board ray with the ray continuation
         from the blocked square.
         :param move: the proposed Move instance
+        :param color_to_move: the current color to move
         :return: True iff Move is legal
         """
         bitboard = make_uint64()
@@ -239,19 +266,20 @@ class Position:
         legal_moves = north_ray | east_ray | south_ray | west_ray
 
         # Remove own piece targets
-        own_piece_targets = self.get_occupied_squares_by_color[self.color_to_move] & moving_to_square
+        own_piece_targets = self.get_occupied_squares_by_color[color_to_move] & moving_to_square
 
         if own_piece_targets:
             legal_moves &= ~own_piece_targets
 
         return legal_moves
 
-    def get_legal_pawn_moves_from(self, move: Move) -> np.uint64:
+    def get_legal_pawn_moves_from(self, move: Move, color_to_move: int) -> np.uint64:
         """
         Pseudo-Legal Pawn Moves:
         - Pawn non-attacks that don't intersect with occupied squares
         - Pawn attacks that intersect with opponent pieces
         :param move: the proposed Move instance
+        :param color_to_move: the current color to move
         :return: True iff Move is legal
         """
         bitboard = make_uint64()
@@ -262,7 +290,7 @@ class Position:
             Color.BLACK: self.board.black_pawn_motion_bbs[move.from_sq]
         }
 
-        legal_non_attack_moves[self.color_to_move] &= self.board.empty_squares_bb
+        legal_non_attack_moves[color_to_move] &= self.board.empty_squares_bb
 
         legal_attack_moves = {
             Color.WHITE: self.board.white_pawn_attack_bbs[move.from_sq],
@@ -274,18 +302,18 @@ class Position:
             Color.BLACK: self.board.white_pieces_bb
         }
 
-        legal_attack_moves[self.color_to_move] &= opp_occupied[self.color_to_move]
+        legal_attack_moves[color_to_move] &= opp_occupied[color_to_move]
 
-        legal_moves = legal_non_attack_moves[self.color_to_move] | legal_attack_moves[self.color_to_move]
+        legal_moves = legal_non_attack_moves[color_to_move] | legal_attack_moves[color_to_move]
 
         # Handle en-passant targets
         if self.en_passant_target:
             en_passant_bb = set_bit(bitboard, self.en_passant_target)
-            en_passant_move = legal_attack_moves[self.color_to_move] & en_passant_bb
+            en_passant_move = legal_attack_moves[color_to_move] & en_passant_bb
             legal_moves |= en_passant_move
 
         # Handle Captures
-        if moving_to_square & legal_attack_moves[self.color_to_move]:
+        if moving_to_square & legal_attack_moves[color_to_move]:
             move.is_capture = True
 
         # Handle removing own piece targets
@@ -295,7 +323,7 @@ class Position:
         }
 
         # Remove own piece targets
-        own_piece_targets = occupied_squares[self.color_to_move] & moving_to_square
+        own_piece_targets = occupied_squares[color_to_move] & moving_to_square
 
         if own_piece_targets:
             legal_moves &= ~own_piece_targets
@@ -306,23 +334,25 @@ class Position:
             Color.BLACK: Rank.hex1
         }
 
-        if moving_to_square & promotion_rank[self.color_to_move]:
+        if moving_to_square & promotion_rank[color_to_move]:
             move.is_promotion = True
 
         return legal_moves
 
-    def get_legal_queen_moves_from(self, move: Move) -> np.uint64:
+    def get_legal_queen_moves_from(self, move: Move, color_to_move: int) -> np.uint64:
         """
         Pseudo-Legal Queen Moves:  bitwise OR of legal Bishop moves, Rook moves
         :param move: the proposed Move instance
+        :param color_to_move: the current color to move
         :return: True iff Move is legal
         """
         return self.get_legal_rook_moves_from(move) | self.get_legal_bishop_moves_from(move)
 
-    def get_legal_king_moves_from(self, move: Move) -> np.uint64:
+    def get_legal_king_moves_from(self, move: Move, color_to_move: int) -> np.uint64:
         """
         Pseudo-Legal King Moves: one step in any direction
         :param move: the proposed Move instance
+        :param color_to_move: the current color to move
         :return: True iff Move is legal
         """
         bitboard = make_uint64()
@@ -344,39 +374,42 @@ class Position:
             bitboard |= set_bit(bitboard, np.uint64(move.from_sq + i) & ~np.uint64(File.hexH))
 
         # remove own piece targets
-        own_piece_targets = self.get_occupied_squares_by_color[self.color_to_move] & moving_to_square
+        own_piece_targets = self.get_occupied_squares_by_color[color_to_move] & moving_to_square
 
         if own_piece_targets:
             bitboard &= ~own_piece_targets
 
         return bitboard
 
-    def add_castling_moves(self, bitboard: np.uint64) -> np.uint64:
+    def add_castling_moves(self, bitboard: np.uint64, color_to_move: int) -> np.uint64:
         """
         Adds castling squares to the bitboard
         :param bitboard: numpy uint64 bitboard
+        :param color_to_move: the current color to move
         :return:
         """
-        if self.color_to_move == Color.WHITE:
+        if color_to_move == Color.WHITE:
             bitboard |= set_bit(bitboard, Square.C1)
             bitboard |= set_bit(bitboard, Square.G1)
-        if self.color_to_move == Color.BLACK:
+        if color_to_move == Color.BLACK:
             bitboard |= set_bit(bitboard, Square.C8)
             bitboard |= set_bit(bitboard, Square.G8)
         return bitboard
 
-    def can_castle(self) -> bool:
+    def can_castle(self, color_to_move) -> tuple:
         """
-        Returns True if the color_to_move has castling rights
+        Returns a tuple of (bool, bool) can castle on (kingside, queenside)
         and can move through the castling squares without being in check.
-        :return: True iff the color_to_move has castling rights
-        and can move through the castling squares without being in check.
+        :return: Tuple (bool, bool) iff the color_to_move has castling rights
+        and can move through the castling squares without being in check on (kingside, queenside)
         """
-        if not self.castle_rights[self.color_to_move]:
-            return False
+        if not self.castle_rights[color_to_move]:
+            return 0, 0
 
-        if self.color_to_move == Color.WHITE:
-            pass
+        if color_to_move == Color.WHITE:
+            self.squares_attacked_by_black & self.castle_route
+            return 0, 0
 
-        if self.color_to_move == Color.BLACK:
-            pass
+        if color_to_move == Color.BLACK:
+            self.squares_attacked_by_white & self.castle_route
+            return 0, 0
