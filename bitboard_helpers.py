@@ -123,42 +123,54 @@ def generate_knight_attack_bb_from_square(square):
 #  ATTACK PATTERNS: ROOK
 # -------------------------------------------------------------
 
+def get_south_ray(bitboard, square):
+    for i in range(0, -64, -8):
+        bitboard |= set_bit(bitboard, square + i)
+    bitboard = clear_bit(bitboard, square)
+    return bitboard
+
+
+def get_north_ray(bitboard, square):
+    for i in range(0, 64, 8):
+        bitboard |= set_bit(bitboard, square + i)
+    return bitboard
+
+
+def get_west_ray(bitboard, square):
+    if square % 8 == 0:
+        bitboard |= HOT << np.uint64(square)
+        square -= 1
+    else:
+        while not square % 8 == 0:
+            bitboard |= HOT << np.uint64(square)
+            square -= 1
+        bitboard |= HOT << np.uint64(square)
+    return bitboard
+
+
+def get_east_ray(bitboard, square):
+    if not square % 8:
+        bitboard |= HOT << np.uint64(square)
+        square += 1
+    while not square % 8 == 0:
+        bitboard |= HOT << np.uint64(square)
+        square += 1
+    return bitboard
+
+
 def generate_rank_attack_bb_from_square(square):
     attack_bb = make_uint64()
-    # North
-    for i in range(0, 64, 8):
-        attack_bb |= set_bit(attack_bb, square + i)
-    # South
-    for i in range(0, -64, -8):
-        attack_bb |= set_bit(attack_bb, square + i)
+    attack_bb = get_north_ray(attack_bb, square)
+    attack_bb = get_south_ray(attack_bb, square)
     attack_bb = clear_bit(attack_bb, square)
     return attack_bb
 
 
 def generate_file_attack_bb_from_square(square):
     attack_bb = make_uint64()
-    original_square = square
-
-    # East
-    if not square % 8:
-        attack_bb |= HOT << np.uint64(square)
-        square += 1
-    while not square % 8 == 0:
-        attack_bb |= HOT << np.uint64(square)
-        square += 1
-
-    square = original_square
-    # West
-    if square % 8 == 0:
-        attack_bb |= HOT << np.uint64(square)
-        square -= 1
-    else:
-        while not square % 8 == 0:
-            attack_bb |= HOT << np.uint64(square)
-            square -= 1
-        attack_bb |= HOT << np.uint64(square)
-
-    attack_bb = clear_bit(attack_bb, original_square)
+    attack_bb = get_east_ray(attack_bb, square)
+    attack_bb = get_west_ray(attack_bb, square)
+    attack_bb = clear_bit(attack_bb, square)
     return attack_bb
 
 

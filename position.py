@@ -149,9 +149,9 @@ class Position:
         :return:
         """
         moving_to_square = set_bit(bb, move.to_sq)
-
-        # northwest attack route
         occupied = self.board.occupied_squares_bb
+
+        # northwest route
         northwest_ray = get_northwest_ray(bb, move.from_sq)
         intersection = occupied & northwest_ray
         if intersection:
@@ -160,7 +160,6 @@ class Position:
             northwest_ray ^= block_ray
 
         # northeast route
-        occupied = self.board.occupied_squares_bb
         northeast_ray = get_northeast_ray(bb, move.from_sq)
         intersection = occupied & northeast_ray
         if intersection:
@@ -169,7 +168,6 @@ class Position:
             northeast_ray ^= block_ray
 
         # southwest route
-        occupied = self.board.occupied_squares_bb
         southwest_ray = get_southwest_ray(bb, move.from_sq)
         intersection = occupied & southwest_ray
         if intersection:
@@ -178,7 +176,6 @@ class Position:
             southwest_ray ^= block_ray
 
         # southeast route
-        occupied = self.board.occupied_squares_bb
         southeast_ray = get_southeast_ray(bb, move.from_sq)
         intersection = occupied & southeast_ray
         if intersection:
@@ -192,6 +189,65 @@ class Position:
         }
 
         legal_moves = moving_to_square & (northwest_ray | northeast_ray | southwest_ray | southeast_ray)
+
+        # remove own piece targets
+        own_piece_targets = occupied_squares[self.color_to_move] & moving_to_square
+        if own_piece_targets:
+            legal_moves &= ~own_piece_targets
+
+        return legal_moves
+
+    def is_legal_rook_move(self, move, bb):
+        """
+        Implements the classical approach for determining legal sliding-piece moves
+        for rank and file directions. Gets first blocker with forward or reverse bitscan
+        based on the ray direction and XORs the open board ray with the ray continuation
+        from the blocked square.
+        :param move:
+        :param bb:
+        :return:
+        """
+        moving_to_square = set_bit(bb, move.to_sq)
+        occupied = self.board.occupied_squares_bb
+
+        # north route
+        north_ray = get_north_ray(bb, move.from_sq)
+        intersection = occupied & north_ray
+        if intersection:
+            first_blocker = bitscan_forward(intersection)
+            block_ray = get_northwest_ray(bb, first_blocker)
+            north_ray ^= block_ray
+
+        # east route
+        east_ray = get_east_ray(bb, move.from_sq)
+        intersection = occupied & east_ray
+        if intersection:
+            first_blocker = bitscan_forward(intersection)
+            block_ray = get_northeast_ray(bb, first_blocker)
+            east_ray ^= block_ray
+
+        # south route
+        south_ray = get_south_ray(bb, move.from_sq)
+        intersection = occupied & south_ray
+        if intersection:
+            first_blocker = bitscan_reverse(intersection)
+            block_ray = get_southwest_ray(bb, first_blocker)
+            south_ray ^= block_ray
+
+        # west route
+        west_ray = get_west_ray(bb, move.from_sq)
+        intersection = occupied & west_ray
+        if intersection:
+            first_blocker = bitscan_reverse(intersection)
+            block_ray = get_southeast_ray(bb, first_blocker)
+            west_ray ^= block_ray
+
+        occupied_squares = {
+            Color.BLACK: self.board.black_pieces_bb,
+            Color.WHITE: self.board.white_pieces_bb,
+        }
+
+        legal_moves = moving_to_square & (north_ray | east_ray | south_ray | west_ray)
 
         # remove own piece targets
         own_piece_targets = occupied_squares[self.color_to_move] & moving_to_square
