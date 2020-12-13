@@ -451,9 +451,9 @@ def generate_black_pawn_attack_bb_from_square(from_square: int) -> np.uint64:
     """
     attack_bb = make_uint64()
     # Southeast (mask the A file)
-    attack_bb |= HOT << np.uint64(from_square - 9) & ~np.uint64(File.hexA)
+    attack_bb |= HOT << np.uint64(from_square - 9) & ~np.uint64(File.hexH)
     # Southwest (mask the H file)
-    attack_bb |= HOT << np.uint64(from_square - 7) & ~np.uint64(File.hexH)
+    attack_bb |= HOT << np.uint64(from_square - 7) & ~np.uint64(File.hexA)
     return attack_bb
 
 
