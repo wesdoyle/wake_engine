@@ -4,7 +4,7 @@ from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, g
     get_southwest_ray, get_southeast_ray, get_north_ray, get_east_ray, get_south_ray, \
     get_west_ray, make_uint64
 from wake.board import Board
-from wake.constants import Color, Piece, Rank, HOT, File
+from wake.constants import Color, Piece, Rank, HOT, File, Square
 from wake.move import Move
 
 
@@ -110,27 +110,27 @@ class Position:
 
         if move.piece in {Piece.wN, Piece.bN}:
             # if not in the static attack map return False
-            return self.is_legal_knight_move(move)
+            return self.get_legal_knight_moves_from(move)
 
         if move.piece in {Piece.wP, Piece.bP}:
-            return self.is_legal_pawn_move(move)
+            return self.get_legal_pawn_moves_from(move)
 
         if move.piece in {Piece.wB, Piece.bB}:
-            return self.is_legal_bishop_move(move)
+            return self.get_legal_bishop_moves_from(move)
 
         if move.piece in {Piece.wR, Piece.bR}:
-            return self.is_legal_rook_move(move)
+            return self.get_legal_rook_moves_from(move)
 
         if move.piece in {Piece.wQ, Piece.bQ}:
-            return self.is_legal_queen_move(move)
+            return self.get_legal_queen_moves_from(move)
 
         if move.piece in {Piece.wK, Piece.bK}:
-            return self.is_legal_king_move(move)
+            return self.get_legal_king_moves_from(move)
 
         print("Uncaught illegal move")
         return False
 
-    def is_legal_knight_move(self, move: Move) -> np.uint64:
+    def get_legal_knight_moves_from(self, move: Move) -> np.uint64:
         bitboard = make_uint64()
         legal_knight_moves = self.board.get_knight_attack_from(move.from_sq)
         if not legal_knight_moves & set_bit(bitboard, move.to_sq):
@@ -144,7 +144,7 @@ class Position:
             return True
         return True
 
-    def is_legal_bishop_move(self, move: Move) -> np.uint64:
+    def get_legal_bishop_moves_from(self, move: Move) -> np.uint64:
         """
         Pseudo-Legal Bishop Moves
         Implements the classical approach for determining legal sliding-piece moves
@@ -204,7 +204,7 @@ class Position:
 
         return legal_moves
 
-    def is_legal_rook_move(self, move: Move) -> bool:
+    def get_legal_rook_moves_from(self, move: Move) -> bool:
         """
         Pseudo-Legal Rook Moves
         Implements the classical approach for determining legal sliding-piece moves
@@ -264,7 +264,7 @@ class Position:
 
         return legal_moves
 
-    def is_legal_pawn_move(self, move: Move) -> bool:
+    def get_legal_pawn_moves_from(self, move: Move) -> bool:
         """
         Pseudo-Legal Pawn Moves:
         - Pawn non-attacks that don't intersect with occupied squares
@@ -328,15 +328,15 @@ class Position:
 
         return legal_moves & moving_to_square
 
-    def is_legal_queen_move(self, move):
+    def get_legal_queen_moves_from(self, move):
         """
         Pseudo-Legal Queen Moves:  bitwise OR of legal Bishop moves, Rook moves
         :param move: the proposed Move instance
         :return: True iff Move is legal
         """
-        return self.is_legal_rook_move(move) | self.is_legal_bishop_move(move)
+        return self.get_legal_rook_moves_from(move) | self.get_legal_bishop_moves_from(move)
 
-    def is_legal_king_move(self, move):
+    def get_legal_king_moves_from(self, move, is_castle):
         """
         Pseudo-Legal King Moves: one step in any direction
         :param move: the proposed Move instance
@@ -344,6 +344,11 @@ class Position:
         """
         bitboard = make_uint64()
         moving_to_square = set_bit(bitboard, move.to_sq)
+
+        # Handle Castling
+        if move.is_castling:
+            if self.can_move_through_castling_squares(self.color_to_move) and self.castle_rights[self.color_to_move]:
+                bitboard = self.add_castling_moves(bitboard)
 
         for i in [8, -8]:
             # North-South
@@ -367,3 +372,32 @@ class Position:
             bitboard &= ~own_piece_targets
 
         return bitboard
+
+    def add_castling_moves(self, bitboard: np.uint64) -> np.uint64:
+        """
+        Adds castling squares to the bitboard
+        :param bitboard: numpy uint64 bitboard
+        :return:
+        """
+        if self.color_to_move == Color.WHITE:
+            bitboard |= set_bit(bitboard, Square.C1)
+            bitboard |= set_bit(bitboard, Square.G1)
+        if self.color_to_move == Color.BLACK:
+            bitboard |= set_bit(bitboard, Square.C8)
+            bitboard |= set_bit(bitboard, Square.G8)
+        return bitboard
+
+    def can_move_through_castling_squares(self, color_to_move: bool) -> bool:
+        """
+        Returns True if the color_to_move can move through the castling squares without being in check.
+        :param color_to_move: Color.WHITE or Color.BLACK (0 or 1)
+        :return: True iff tht color_to_move can move through the castling squares without being in check.
+        """
+        # get the attacked squares from all opponent pieces
+        # intersect the castling squares with attacked squares
+        # if the intersection exists, return False
+        if self.color_to_move == Color.WHITE:
+            pass
+
+        if self.color_to_move == Color.BLACK:
+            pass
