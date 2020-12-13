@@ -11,5 +11,6 @@ setup(
         author="Wes Doyle",
         url="https://github.com/wesdoyle",
         keywords=["chess", "chess-programming", "chess-engine", "bitboard", "game", "numpy"],
-        )
+        install_requires=['numpy']
+)
 
