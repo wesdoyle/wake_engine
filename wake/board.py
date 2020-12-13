@@ -1,9 +1,9 @@
 import numpy as np
 
-from bitboard_helpers import make_uint64, set_bit, make_knight_attack_bbs, make_king_attack_bbs, \
+from wake.bitboard_helpers import make_uint64, set_bit, make_knight_attack_bbs, make_king_attack_bbs, \
     make_white_pawn_attack_bbs, make_black_pawn_attack_bbs, make_diag_attack_bbs, \
     make_rook_attack_bbs, make_white_pawn_motion_bbs, make_black_pawn_motion_bbs, make_queen_attack_bbs
-from constants import Piece, Color, File
+from wake.constants import Piece, Color, File
 
 
 class Board:

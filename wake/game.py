@@ -1,4 +1,4 @@
-from position import Position
+from wake.position import Position
 
 """
 notes:

@@ -1,11 +1,11 @@
 import numpy as np
 
-from bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
+from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
     get_southwest_ray, get_southeast_ray, get_north_ray, get_east_ray, get_south_ray, \
     get_west_ray
-from board import Board
-from constants import Color, Piece, Rank
-from move import Move
+from wake.board import Board
+from wake.constants import Color, Piece, Rank
+from wake.move import Move
 
 
 # TODO: possible side-effects from mutating move all over

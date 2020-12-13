@@ -2,7 +2,7 @@ import string
 
 import numpy as np
 
-from constants import File, HOT, Square, Rank, DARK_SQUARES, LIGHT_SQUARES, piece_to_glyph
+from wake.constants import File, HOT, Square, Rank, DARK_SQUARES, LIGHT_SQUARES, piece_to_glyph
 
 BOARD_SIZE = 8
 BOARD_SQUARES = BOARD_SIZE ** 2
