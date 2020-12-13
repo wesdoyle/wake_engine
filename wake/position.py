@@ -19,7 +19,7 @@ def generate_fen():
 class Position:
     """Represents the internal state of a chess position"""
 
-    def __init__(self, board):
+    def __init__(self, board=None):
         if board is None:
             self.board = Board()
         else:

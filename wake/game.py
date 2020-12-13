@@ -1,9 +1,9 @@
 from wake.position import Position
 
 """
-notes:
+TODO:
     - Game as stack of FENs 
-    - each move pushes a position onto the stack
+    - each move pushes an FEN onto the stack
 """
 
 

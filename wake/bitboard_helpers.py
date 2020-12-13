@@ -264,6 +264,7 @@ def get_southeast_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :param from_square: The square from a northeast-sliding piece attacks
     :return: np.uint64 bitboard of the northeastern squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     if from_square % 8 == 0 and from_square not in File.H:
         bitboard |= HOT << np.uint64(from_square)
         from_square -= 7
@@ -271,6 +272,7 @@ def get_southeast_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
         bitboard |= HOT << np.uint64(from_square)
         from_square -= 7
     bitboard |= HOT << np.uint64(from_square)
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
@@ -281,6 +283,7 @@ def get_northwest_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :param from_square: The square from a northwest-sliding piece attacks
     :return: np.uint64 bitboard of the northwestern squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     if from_square % 8 == 0 and from_square not in File.A:
         bitboard |= HOT << np.uint64(from_square)
         from_square += 7
@@ -288,6 +291,7 @@ def get_northwest_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
         bitboard |= HOT << np.uint64(from_square)
         from_square += 7
     bitboard |= HOT << np.uint64(from_square)
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
@@ -298,6 +302,7 @@ def get_southwest_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :param from_square: The square from a southwest-sliding piece attacks
     :return: np.uint64 bitboard of the southwestern squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     if from_square % 8 == 0:
         bitboard |= HOT << np.uint64(from_square)
         from_square -= 9
@@ -306,6 +311,7 @@ def get_southwest_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
             bitboard |= HOT << np.uint64(from_square)
             from_square -= 9
         bitboard |= HOT << np.uint64(from_square)
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
@@ -316,12 +322,14 @@ def get_northeast_ray(bitboard, from_square):
     :param from_square: The square from a northeast-sliding piece attacks
     :return: np.uint64 bitboard of the northeastern squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     if from_square % 8 == 0:
         bitboard |= HOT << np.uint64(from_square)
         from_square += 9
     while not from_square % 8 == 0:
         bitboard |= HOT << np.uint64(from_square)
         from_square += 9
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
