@@ -1,5 +1,6 @@
 from bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
-    get_southwest_ray, get_southeast_ray, make_uint64, clear_bit
+    get_southwest_ray, get_southeast_ray, make_uint64, clear_bit, get_north_ray, get_east_ray, get_south_ray, \
+    get_west_ray
 from board import Board
 from constants import Color, Piece, Rank
 from move import Move
@@ -104,17 +105,19 @@ class Position:
 
         # Get position of piece from piece map
         # If its a knight, lookup if move.to & with the knight attack bb
-        bb = np.uint64(0)
 
         if move.piece in {Piece.wN, Piece.bN}:
             # if not in the static attack map return False
-            return self.is_legal_knight_move(move, bb)
+            return self.is_legal_knight_move(move)
 
         if move.piece in {Piece.wP, Piece.bP}:
-            return self.is_legal_pawn_move(move, bb)
+            return self.is_legal_pawn_move(move)
 
-        if move.piece in {Piece.wP, Piece.bP}:
-            return self.is_legal_pawn_move(move, bb)
+        if move.piece in {Piece.wB, Piece.bB}:
+            return self.is_legal_bishop_move(move)
+
+        if move.piece in {Piece.wR, Piece.bR}:
+            return self.is_legal_rook_move(move)
 
         print("Uncaught illegal move")
         return False
@@ -125,9 +128,10 @@ class Position:
         # if own, square up to bni bit-scanned find in the ray direction
         # if opp, square up to inc bit-scanned find in the ray direction, capture
 
-    def is_legal_knight_move(self, move, bb):
+    def is_legal_knight_move(self, move):
+        bitboard = np.uint64(0)
         legal_knight_moves = self.board.get_knight_attack_from(move.from_sq)
-        if not legal_knight_moves & set_bit(bb, move.to_sq):
+        if not legal_knight_moves & set_bit(bitboard, move.to_sq):
             return False
         # if intersects_with_own_pieces return False
         if self.intersects_with_own_pieces(move.to_sq):
@@ -138,49 +142,49 @@ class Position:
             return True
         return True
 
-    def is_legal_bishop_move(self, move, bb):
+    def is_legal_bishop_move(self, move):
         """
         Implements the classical approach for determining legal sliding-piece moves
         for diagonal directions. Gets first blocker with forward or reverse bitscan
         based on the ray direction and XORs the open board ray with the ray continuation
         from the blocked square.
         :param move:
-        :param bb:
         :return:
         """
-        moving_to_square = set_bit(bb, move.to_sq)
+        bitboard = np.uint64(0)
+        moving_to_square = set_bit(bitboard, move.to_sq)
         occupied = self.board.occupied_squares_bb
 
         # northwest route
-        northwest_ray = get_northwest_ray(bb, move.from_sq)
+        northwest_ray = get_northwest_ray(bitboard, move.from_sq)
         intersection = occupied & northwest_ray
         if intersection:
             first_blocker = bitscan_forward(intersection)
-            block_ray = get_northwest_ray(bb, first_blocker)
+            block_ray = get_northwest_ray(bitboard, first_blocker)
             northwest_ray ^= block_ray
 
         # northeast route
-        northeast_ray = get_northeast_ray(bb, move.from_sq)
+        northeast_ray = get_northeast_ray(bitboard, move.from_sq)
         intersection = occupied & northeast_ray
         if intersection:
             first_blocker = bitscan_forward(intersection)
-            block_ray = get_northeast_ray(bb, first_blocker)
+            block_ray = get_northeast_ray(bitboard, first_blocker)
             northeast_ray ^= block_ray
 
         # southwest route
-        southwest_ray = get_southwest_ray(bb, move.from_sq)
+        southwest_ray = get_southwest_ray(bitboard, move.from_sq)
         intersection = occupied & southwest_ray
         if intersection:
             first_blocker = bitscan_reverse(intersection)
-            block_ray = get_southwest_ray(bb, first_blocker)
+            block_ray = get_southwest_ray(bitboard, first_blocker)
             southwest_ray ^= block_ray
 
         # southeast route
-        southeast_ray = get_southeast_ray(bb, move.from_sq)
+        southeast_ray = get_southeast_ray(bitboard, move.from_sq)
         intersection = occupied & southeast_ray
         if intersection:
             first_blocker = bitscan_reverse(intersection)
-            block_ray = get_southeast_ray(bb, first_blocker)
+            block_ray = get_southeast_ray(bitboard, first_blocker)
             southeast_ray ^= block_ray
 
         occupied_squares = {
@@ -197,49 +201,49 @@ class Position:
 
         return legal_moves
 
-    def is_legal_rook_move(self, move, bb):
+    def is_legal_rook_move(self, move):
         """
         Implements the classical approach for determining legal sliding-piece moves
         for rank and file directions. Gets first blocker with forward or reverse bitscan
         based on the ray direction and XORs the open board ray with the ray continuation
         from the blocked square.
         :param move:
-        :param bb:
         :return:
         """
-        moving_to_square = set_bit(bb, move.to_sq)
+        bitboard = np.uint64(0)
+        moving_to_square = set_bit(bitboard, move.to_sq)
         occupied = self.board.occupied_squares_bb
 
         # north route
-        north_ray = get_north_ray(bb, move.from_sq)
+        north_ray = get_north_ray(bitboard, move.from_sq)
         intersection = occupied & north_ray
         if intersection:
             first_blocker = bitscan_forward(intersection)
-            block_ray = get_northwest_ray(bb, first_blocker)
+            block_ray = get_northwest_ray(bitboard, first_blocker)
             north_ray ^= block_ray
 
         # east route
-        east_ray = get_east_ray(bb, move.from_sq)
+        east_ray = get_east_ray(bitboard, move.from_sq)
         intersection = occupied & east_ray
         if intersection:
             first_blocker = bitscan_forward(intersection)
-            block_ray = get_northeast_ray(bb, first_blocker)
+            block_ray = get_northeast_ray(bitboard, first_blocker)
             east_ray ^= block_ray
 
         # south route
-        south_ray = get_south_ray(bb, move.from_sq)
+        south_ray = get_south_ray(bitboard, move.from_sq)
         intersection = occupied & south_ray
         if intersection:
             first_blocker = bitscan_reverse(intersection)
-            block_ray = get_southwest_ray(bb, first_blocker)
+            block_ray = get_southwest_ray(bitboard, first_blocker)
             south_ray ^= block_ray
 
         # west route
-        west_ray = get_west_ray(bb, move.from_sq)
+        west_ray = get_west_ray(bitboard, move.from_sq)
         intersection = occupied & west_ray
         if intersection:
             first_blocker = bitscan_reverse(intersection)
-            block_ray = get_southeast_ray(bb, first_blocker)
+            block_ray = get_southeast_ray(bitboard, first_blocker)
             west_ray ^= block_ray
 
         occupied_squares = {
@@ -256,16 +260,16 @@ class Position:
 
         return legal_moves
 
-    def is_legal_pawn_move(self, move, bb):
+    def is_legal_pawn_move(self, move):
         """
         Legal Pawn Moves:
         - Pawn non-attacks that don't intersect with occupied squares
         - Pawn attacks that intersect with opponent pieces
         :param move: The proposed move
-        :param bb: An empty bitboard
         :return: (bool) is a legal pawn move
         """
-        moving_to_square = set_bit(bb, move.to_sq)
+        bitboard = np.uint64(0)
+        moving_to_square = set_bit(bitboard, move.to_sq)
 
         legal_non_attack_moves = {
             Color.WHITE: self.board.white_pawn_motion_bbs[move.from_sq],
@@ -289,7 +293,7 @@ class Position:
         legal_moves = legal_non_attack_moves[self.color_to_move] | legal_attack_moves[self.color_to_move]
 
         if self.en_passant_target:
-            en_passant_bb = set_bit(bb, self.en_passant_target)
+            en_passant_bb = set_bit(bitboard, self.en_passant_target)
             en_passant_move = legal_attack_moves[self.color_to_move] & en_passant_bb
             legal_moves |= en_passant_move
 
