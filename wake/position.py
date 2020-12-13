@@ -110,39 +110,42 @@ class Position:
 
         if move.piece in {Piece.wN, Piece.bN}:
             # if not in the static attack map return False
-            return self.get_legal_knight_moves_from(move)
+            return self.get_legal_knight_moves_from(move).any()
 
         if move.piece in {Piece.wP, Piece.bP}:
-            return self.get_legal_pawn_moves_from(move)
+            return self.get_legal_pawn_moves_from(move).any()
 
         if move.piece in {Piece.wB, Piece.bB}:
-            return self.get_legal_bishop_moves_from(move)
+            return self.get_legal_bishop_moves_from(move).any()
 
         if move.piece in {Piece.wR, Piece.bR}:
-            return self.get_legal_rook_moves_from(move)
+            return self.get_legal_rook_moves_from(move).any()
 
         if move.piece in {Piece.wQ, Piece.bQ}:
-            return self.get_legal_queen_moves_from(move)
+            return self.get_legal_queen_moves_from(move).any()
 
         if move.piece in {Piece.wK, Piece.bK}:
-            return self.get_legal_king_moves_from(move)
+            return self.get_legal_king_moves_from(move).any()
 
         print("Uncaught illegal move")
         return False
 
     def get_legal_knight_moves_from(self, move: Move) -> np.uint64:
-        bitboard = make_uint64()
+        """
+        Gets the legal knight moves from the given Move instance
+        :param move:
+        :return:
+        """
         legal_knight_moves = self.board.get_knight_attack_from(move.from_sq)
-        if not legal_knight_moves & set_bit(bitboard, move.to_sq):
-            return False
-        # if intersects_with_own_pieces return False
-        if self.intersects_with_own_pieces(move.to_sq):
-            return False
-        # if intersects_with_opp_pieces return True, is_capture => True
-        if self.intersects_with_opp_pieces(move.to_sq):
-            move.is_capture = True
-            return True
-        return True
+
+        # Mask out own pieces
+        if self.color_to_move == Color.WHITE:
+            legal_knight_moves &= ~self.board.white_pieces_bb
+
+        if self.color_to_move == Color.BLACK:
+            legal_knight_moves &= ~self.board.black_pieces_bb
+
+        return legal_knight_moves
 
     def get_legal_bishop_moves_from(self, move: Move) -> np.uint64:
         """
@@ -264,7 +267,7 @@ class Position:
 
         return legal_moves
 
-    def get_legal_pawn_moves_from(self, move: Move) -> bool:
+    def get_legal_pawn_moves_from(self, move: Move) -> np.uint64:
         """
         Pseudo-Legal Pawn Moves:
         - Pawn non-attacks that don't intersect with occupied squares
@@ -326,9 +329,9 @@ class Position:
         if moving_to_square & promotion_rank[self.color_to_move]:
             move.is_promotion = True
 
-        return legal_moves & moving_to_square
+        return legal_moves
 
-    def get_legal_queen_moves_from(self, move):
+    def get_legal_queen_moves_from(self, move: Move) -> np.uint64:
         """
         Pseudo-Legal Queen Moves:  bitwise OR of legal Bishop moves, Rook moves
         :param move: the proposed Move instance
@@ -336,7 +339,7 @@ class Position:
         """
         return self.get_legal_rook_moves_from(move) | self.get_legal_bishop_moves_from(move)
 
-    def get_legal_king_moves_from(self, move, is_castle):
+    def get_legal_king_moves_from(self, move: Move) -> np.uint64:
         """
         Pseudo-Legal King Moves: one step in any direction
         :param move: the proposed Move instance
@@ -347,7 +350,7 @@ class Position:
 
         # Handle Castling
         if move.is_castling:
-            if self.can_move_through_castling_squares(self.color_to_move) and self.castle_rights[self.color_to_move]:
+            if self.can_castle() :
                 bitboard = self.add_castling_moves(bitboard)
 
         for i in [8, -8]:
@@ -387,15 +390,16 @@ class Position:
             bitboard |= set_bit(bitboard, Square.G8)
         return bitboard
 
-    def can_move_through_castling_squares(self, color_to_move: bool) -> bool:
+    def can_castle(self) -> bool:
         """
-        Returns True if the color_to_move can move through the castling squares without being in check.
-        :param color_to_move: Color.WHITE or Color.BLACK (0 or 1)
-        :return: True iff tht color_to_move can move through the castling squares without being in check.
+        Returns True if the color_to_move has castling rights
+        and can move through the castling squares without being in check.
+        :return: True iff the color_to_move has castling rights
+        and can move through the castling squares without being in check.
         """
-        # get the attacked squares from all opponent pieces
-        # intersect the castling squares with attacked squares
-        # if the intersection exists, return False
+        if not self.castle_rights[self.color_to_move]:
+            return False
+
         if self.color_to_move == Color.WHITE:
             pass
 
