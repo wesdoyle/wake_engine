@@ -8,7 +8,7 @@ BOARD_SIZE = 8
 BOARD_SQUARES = BOARD_SIZE ** 2
 
 
-def make_empty_uint64_bitmap():
+def make_uint64():
     return np.uint64(0)
 
 
@@ -108,7 +108,7 @@ def pprint_bb(bitboard, board_size=8):
 # -------------------------------------------------------------
 
 def generate_knight_attack_bb_from_square(square):
-    attack_bb = make_empty_uint64_bitmap()
+    attack_bb = make_uint64()
     for i in [6, 15, 17, 10, -6, -15, -17, -10]:
         attack_bb |= set_bit(attack_bb, square + i)
         # Mask of wrapping
@@ -124,7 +124,7 @@ def generate_knight_attack_bb_from_square(square):
 # -------------------------------------------------------------
 
 def generate_rank_attack_bb_from_square(square):
-    attack_bb = make_empty_uint64_bitmap()
+    attack_bb = make_uint64()
     # North
     for i in range(0, 64, 8):
         attack_bb |= set_bit(attack_bb, square + i)
@@ -136,7 +136,7 @@ def generate_rank_attack_bb_from_square(square):
 
 
 def generate_file_attack_bb_from_square(square):
-    attack_bb = make_empty_uint64_bitmap()
+    attack_bb = make_uint64()
     original_square = square
 
     # East
@@ -172,7 +172,7 @@ def generate_rook_attack_bb_from_square(square):
 # -------------------------------------------------------------
 
 def generate_diag_attack_bb_from_square(square):
-    attack_bb = make_empty_uint64_bitmap()
+    attack_bb = make_uint64()
     original_square = square
 
     attack_bb = get_northeast_ray(attack_bb, square)
@@ -244,7 +244,7 @@ def generate_queen_attack_bb_from_square(square):
 # -------------------------------------------------------------
 
 def generate_king_attack_bb_from_square(square):
-    attack_bb = make_empty_uint64_bitmap()
+    attack_bb = make_uint64()
     for i in [8, -8]:
         # North-South
         attack_bb |= HOT << np.uint64(square + i)
@@ -262,7 +262,7 @@ def generate_king_attack_bb_from_square(square):
 # -------------------------------------------------------------
 
 def generate_white_pawn_attack_bb_from_square(square):
-    attack_bb = make_empty_uint64_bitmap()
+    attack_bb = make_uint64()
     # Northeast (mask the A file)
     attack_bb |= HOT << np.uint64(square + 9) & ~np.uint64(File.hexA)
     # Northwest (mask the H file)
@@ -271,7 +271,7 @@ def generate_white_pawn_attack_bb_from_square(square):
 
 
 def generate_black_pawn_attack_bb_from_square(square):
-    attack_bb = make_empty_uint64_bitmap()
+    attack_bb = make_uint64()
     # Southeast (mask the A file)
     attack_bb |= HOT << np.uint64(square - 9) & ~np.uint64(File.hexA)
     # Southwest (mask the H file)
@@ -280,7 +280,7 @@ def generate_black_pawn_attack_bb_from_square(square):
 
 
 def generate_white_pawn_motion_bb_from_square(square):
-    motion_bb = make_empty_uint64_bitmap()
+    motion_bb = make_uint64()
     motion_bb |= HOT << np.uint64(square + 8)
     if square in Rank.x2:
         motion_bb |= HOT << np.uint64(square + 16)
@@ -288,7 +288,7 @@ def generate_white_pawn_motion_bb_from_square(square):
 
 
 def generate_black_pawn_motion_bb_from_square(square):
-    motion_bb = make_empty_uint64_bitmap()
+    motion_bb = make_uint64()
     motion_bb |= HOT << np.uint64(square - 8)
     if square in Rank.x7:
         motion_bb |= HOT << np.uint64(square - 16)

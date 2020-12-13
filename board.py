@@ -1,6 +1,6 @@
 import numpy as np
 
-from bitboard_helpers import make_empty_uint64_bitmap, set_bit, make_knight_attack_bbs, make_king_attack_bbs, \
+from bitboard_helpers import make_uint64, set_bit, make_knight_attack_bbs, make_king_attack_bbs, \
     make_white_pawn_attack_bbs, make_black_pawn_attack_bbs, file_h_bb, file_a_bb, make_diag_attack_bbs, \
     make_rook_attack_bbs, make_white_pawn_motion_bbs, make_black_pawn_motion_bbs, make_queen_attack_bbs
 from constants import Piece, Color, File
@@ -11,20 +11,20 @@ class Board:
     def __init__(self):
 
         # white piece groups
-        self.white_R_bb = make_empty_uint64_bitmap()
-        self.white_K_bb = make_empty_uint64_bitmap()
-        self.white_B_bb = make_empty_uint64_bitmap()
-        self.white_P_bb = make_empty_uint64_bitmap()
-        self.white_N_bb = make_empty_uint64_bitmap()
-        self.white_Q_bb = make_empty_uint64_bitmap()
+        self.white_R_bb = make_uint64()
+        self.white_K_bb = make_uint64()
+        self.white_B_bb = make_uint64()
+        self.white_P_bb = make_uint64()
+        self.white_N_bb = make_uint64()
+        self.white_Q_bb = make_uint64()
 
         # black piece groups
-        self.black_R_bb = make_empty_uint64_bitmap()
-        self.black_K_bb = make_empty_uint64_bitmap()
-        self.black_B_bb = make_empty_uint64_bitmap()
-        self.black_P_bb = make_empty_uint64_bitmap()
-        self.black_N_bb = make_empty_uint64_bitmap()
-        self.black_Q_bb = make_empty_uint64_bitmap()
+        self.black_R_bb = make_uint64()
+        self.black_K_bb = make_uint64()
+        self.black_B_bb = make_uint64()
+        self.black_P_bb = make_uint64()
+        self.black_N_bb = make_uint64()
+        self.black_Q_bb = make_uint64()
 
         self.init_pieces()
 

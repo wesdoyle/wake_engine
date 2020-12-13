@@ -1,5 +1,5 @@
 from bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
-    get_southwest_ray, get_southeast_ray
+    get_southwest_ray, get_southeast_ray, make_uint64, clear_bit
 from board import Board
 from constants import Color, Piece, Rank
 from move import Move
@@ -23,7 +23,7 @@ class Position:
         else:
             self.board = board
 
-        self.to_move = Color.WHITE
+        self.color_to_move = Color.WHITE
 
         self.castle_rights = {Color.WHITE: True, Color.BLACK: True}
         self.en_passant_target = None  # target square
@@ -71,7 +71,7 @@ class Position:
         # Data flows from MakeMove -> Position -> BitBoard -> Search
         self.board.update_bitboards(self.piece_map)
 
-        self.to_move = not self.to_move
+        self.color_to_move = not self.color_to_move
 
         return generate_fen()
 
@@ -82,7 +82,7 @@ class Position:
             Color.BLACK: self.board.black_pieces_bb,
             Color.WHITE: self.board.white_pieces_bb,
         }
-        return occupy_lookup[self.to_move] & move_square_bb
+        return occupy_lookup[self.color_to_move] & move_square_bb
 
     def intersects_with_opp_pieces(self, square):
         bb = np.uint64(0)
@@ -91,14 +91,14 @@ class Position:
             Color.WHITE: self.board.black_pieces_bb,
             Color.BLACK: self.board.white_pieces_bb,
         }
-        return occupy_lookup[self.to_move] & move_square_bb
+        return occupy_lookup[self.color_to_move] & move_square_bb
 
     def is_legal_move(self, move: Move) -> bool:
-        if self.to_move == Color.WHITE and move.piece not in Piece.white_pieces:
+        if self.color_to_move == Color.WHITE and move.piece not in Piece.white_pieces:
             print("That isn't one of your pieces.")
             return False
 
-        if self.to_move == Color.BLACK and move.piece not in Piece.black_pieces:
+        if self.color_to_move == Color.BLACK and move.piece not in Piece.black_pieces:
             print("That isn't one of your pieces.")
             return False
 
@@ -109,6 +109,9 @@ class Position:
         if move.piece in {Piece.wN, Piece.bN}:
             # if not in the static attack map return False
             return self.is_legal_knight_move(move, bb)
+
+        if move.piece in {Piece.wP, Piece.bP}:
+            return self.is_legal_pawn_move(move, bb)
 
         if move.piece in {Piece.wP, Piece.bP}:
             return self.is_legal_pawn_move(move, bb)
@@ -145,7 +148,8 @@ class Position:
         :param bb:
         :return:
         """
-        # TODO: immediately make illegal if attacks own
+        moving_to_square = set_bit(bb, move.to_sq)
+
         # northwest attack route
         occupied = self.board.occupied_squares_bb
         northwest_ray = get_northwest_ray(bb, move.from_sq)
@@ -182,7 +186,19 @@ class Position:
             block_ray = get_southeast_ray(bb, first_blocker)
             southeast_ray ^= block_ray
 
-        return move.to_sq & (northwest_ray | northeast_ray | southwest_ray | southeast_ray)
+        occupied_squares = {
+            Color.BLACK: self.board.black_pieces_bb,
+            Color.WHITE: self.board.white_pieces_bb,
+        }
+
+        legal_moves = moving_to_square & (northwest_ray | northeast_ray | southwest_ray | southeast_ray)
+
+        # remove own piece targets
+        own_piece_targets = occupied_squares[self.color_to_move] & moving_to_square
+        if own_piece_targets:
+            legal_moves &= ~own_piece_targets
+
+        return legal_moves
 
     def is_legal_pawn_move(self, move, bb):
         """
@@ -200,7 +216,7 @@ class Position:
             Color.BLACK: self.board.black_pawn_motion_bbs[move.from_sq]
         }
 
-        legal_non_attack_moves[self.to_move] &= self.board.empty_squares_bb
+        legal_non_attack_moves[self.color_to_move] &= self.board.empty_squares_bb
 
         legal_attack_moves = {
             Color.WHITE: self.board.white_pawn_attack_bbs[move.from_sq],
@@ -212,16 +228,16 @@ class Position:
             Color.BLACK: self.board.white_pieces_bb
         }
 
-        legal_attack_moves[self.to_move] &= opp_occupied[self.to_move]
+        legal_attack_moves[self.color_to_move] &= opp_occupied[self.color_to_move]
 
-        legal_moves = legal_non_attack_moves[self.to_move] | legal_attack_moves[self.to_move]
+        legal_moves = legal_non_attack_moves[self.color_to_move] | legal_attack_moves[self.color_to_move]
 
         if self.en_passant_target:
             en_passant_bb = set_bit(bb, self.en_passant_target)
-            en_passant_move = legal_attack_moves[self.to_move] & en_passant_bb
+            en_passant_move = legal_attack_moves[self.color_to_move] & en_passant_bb
             legal_moves |= en_passant_move
 
-        if moving_to_square & legal_attack_moves[self.to_move]:
+        if moving_to_square & legal_attack_moves[self.color_to_move]:
             move.is_capture = True
 
         promotion_rank = {
@@ -229,7 +245,7 @@ class Position:
             Color.BLACK: Rank.hex1
         }
 
-        if moving_to_square & promotion_rank[self.to_move]:
+        if moving_to_square & promotion_rank[self.color_to_move]:
             move.is_promotion = True
 
         print("legal moves:", legal_moves)
