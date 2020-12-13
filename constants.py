@@ -141,3 +141,19 @@ class Piece:
 
     white_pieces = {wP, wR, wN, wB, wQ, wK}
     black_pieces = {bP, bR, bN, bB, bQ, bK}
+
+
+piece_to_glyph = {
+    Piece.wP: "♙",
+    Piece.bP: "♟︎",
+    Piece.wR: "♖",
+    Piece.bR: "♜",
+    Piece.wN: "♘",
+    Piece.bN: "♞",
+    Piece.wB: "♗",
+    Piece.bB: "♝",
+    Piece.wQ: "♕",
+    Piece.bQ: "♛",
+    Piece.wK: "♔",
+    Piece.bK: "♚",
+}

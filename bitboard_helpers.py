@@ -2,7 +2,7 @@ import string
 
 import numpy as np
 
-from constants import File, HOT, Square, Rank, DARK_SQUARES, LIGHT_SQUARES
+from constants import File, HOT, Square, Rank, DARK_SQUARES, LIGHT_SQUARES, piece_to_glyph
 
 BOARD_SIZE = 8
 BOARD_SQUARES = BOARD_SIZE ** 2
@@ -101,6 +101,32 @@ def pprint_bb(bitboard, board_size=8):
     for char in string.ascii_uppercase[:board_size]:
         val += f' {char}'
     print(val)
+
+
+def pprint_pieces(piece_map, board_size=8):
+    """
+    Given a piece map, prints the board using Unicode Chess Symbols
+    :param piece_map:
+    :param board_size:
+    :return:
+    """
+    board = ['░'] * 64
+    for piece, squares in piece_map.items():
+        for square in squares:
+            board[square] = piece_to_glyph[piece]
+    board = np.array(board)
+    board = np.reshape(board, (8, 8))
+    display_rank = board_size
+    for i, row in enumerate(reversed(board)):
+        res = f'{display_rank} '
+        display_rank -= 1
+        for glyph in row:
+            res += f' {glyph}'
+        print(res)
+    res = '  '
+    for char in string.ascii_uppercase[:board_size]:
+        res += f' {char}'
+    print(res)
 
 
 # -------------------------------------------------------------

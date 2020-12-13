@@ -1,10 +1,11 @@
+import numpy as np
+
 from bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
-    get_southwest_ray, get_southeast_ray, make_uint64, clear_bit, get_north_ray, get_east_ray, get_south_ray, \
+    get_southwest_ray, get_southeast_ray, get_north_ray, get_east_ray, get_south_ray, \
     get_west_ray
 from board import Board
 from constants import Color, Piece, Rank
 from move import Move
-import numpy as np
 
 
 # TODO: possible side-effects from mutating move all over
