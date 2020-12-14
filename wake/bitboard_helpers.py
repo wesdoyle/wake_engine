@@ -79,16 +79,16 @@ def bitscan_reverse(bitboard: np.uint64) -> np.uint64 or int:
     result = np.uint64(0)
 
     if bitboard > 0xFFFFFFFF:
-        bitboard >>= 32
-        result = 32
+        bitboard >>= np.uint(32)
+        result = np.uint(32)
 
     if bitboard > 0xFFFF:
-        bitboard >>= 16
-        result += 16
+        bitboard >>= np.uint(16)
+        result += np.uint(16)
 
     if bitboard > 0xFF:
-        bitboard >>= 8
-        result += 8
+        bitboard >>= np.uint(8)
+        result += np.uint(8)
 
     return result + lookup_most_significant_1_bit(bitboard)
 
