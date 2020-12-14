@@ -96,6 +96,7 @@ class Position:
 
     def make_move(self, move):
         if not self.is_legal_move(move):
+            print("Illegal move")
             return
 
         color_to_move = self.color_to_move
@@ -108,24 +109,30 @@ class Position:
 
         # TODO: Decide what's a function; move what belongs to bb updates there
 
-        for piece, current_square in self.piece_map.items():
+        for piece, squares in self.piece_map.items():
             if piece in {Piece.wP, Piece.bP}:
-                self.update_legal_pawn_moves(current_square, color_to_move)
+                for square in squares:
+                    self.update_legal_pawn_moves(square, color_to_move)
 
             if piece in {Piece.wR, Piece.bR}:
-                self.update_legal_rook_moves(current_square, color_to_move)
+                for square in squares:
+                    self.update_legal_rook_moves(square, color_to_move)
 
             if piece in {Piece.wB, Piece.bB}:
-                self.update_legal_bishop_moves(current_square, color_to_move)
+                for square in squares:
+                    self.update_legal_bishop_moves(square, color_to_move)
 
             if piece in {Piece.wN, Piece.bN}:
-                self.update_legal_knight_moves(current_square, color_to_move)
+                for square in squares:
+                    self.update_legal_knight_moves(square, color_to_move)
 
             if piece in {Piece.wQ, Piece.bQ}:
-                self.update_legal_queen_moves(current_square, color_to_move)
+                for square in squares:
+                    self.update_legal_queen_moves(square, color_to_move)
 
             if piece in {Piece.wK, Piece.bK}:
-                self.update_legal_king_moves(current_square, color_to_move)
+                for square in squares:
+                    self.update_legal_king_moves(square, color_to_move)
 
         self.color_to_move = not self.color_to_move
         return generate_fen()
@@ -138,38 +145,38 @@ class Position:
 
         color_to_move = self.color_to_move
         from_square = move.from_sq
+        to_square = set_bit(make_uint64(), move.to_sq)
 
         if self.is_wrong_color_piece(move):
+            print("That isn't one of your pieces.")
             return False
 
-        if move.piece in {Piece.wN, Piece.bN}:
-            return move.to_sq & self.update_legal_knight_moves(from_square, color_to_move)
-
         if move.piece in {Piece.wP, Piece.bP}:
-            return move.to_sq & self.update_legal_pawn_moves(from_square, color_to_move)
+            return to_square & self.update_legal_pawn_moves(from_square, color_to_move)
+
+        if move.piece in {Piece.wN, Piece.bN}:
+            return to_square & self.update_legal_knight_moves(from_square, color_to_move)
 
         if move.piece in {Piece.wB, Piece.bB}:
-            return move.to_sq & self.update_legal_bishop_moves(from_square, color_to_move)
+            return to_square & self.update_legal_bishop_moves(from_square, color_to_move)
 
         if move.piece in {Piece.wR, Piece.bR}:
-            return move.to_sq & self.update_legal_rook_moves(from_square, color_to_move)
+            return to_square & self.update_legal_rook_moves(from_square, color_to_move)
 
         if move.piece in {Piece.wQ, Piece.bQ}:
-            return move.to_sq & self.update_legal_queen_moves(from_square, color_to_move)
+            return to_square & self.update_legal_queen_moves(from_square, color_to_move)
 
         if move.piece in {Piece.wK, Piece.bK}:
-            return move.to_sq & self.update_legal_king_moves(from_square, color_to_move)
+            return to_square & self.update_legal_king_moves(from_square, color_to_move)
 
         print("Uncaught illegal move")
         return False
 
     def is_wrong_color_piece(self, move):
         if self.color_to_move == Color.WHITE and move.piece not in Piece.white_pieces:
-            print("That isn't one of your pieces.")
             return False
 
         if self.color_to_move == Color.BLACK and move.piece not in Piece.black_pieces:
-            print("That isn't one of your pieces.")
             return False
 
     # -------------------------------------------------------------
