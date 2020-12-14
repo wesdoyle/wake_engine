@@ -172,6 +172,9 @@ class Position:
 
     def is_legal_move(self, move: Move) -> bool:
 
+        # TODO: !!!
+        return True
+
         color_to_move = self.color_to_move
         from_square = move.from_sq
         to_square = set_bit(make_uint64(), move.to_sq)
@@ -224,11 +227,11 @@ class Position:
         # Mask out own pieces
         if color_to_move == Color.WHITE:
             legal_knight_moves &= ~self.board.white_pieces_bb
-            self.white_knight_attacks = legal_knight_moves
+            self.white_knight_attacks |= legal_knight_moves
 
         if color_to_move == Color.BLACK:
             legal_knight_moves &= ~self.board.black_pieces_bb
-            self.black_knight_attacks = legal_knight_moves
+            self.black_knight_attacks |= legal_knight_moves
 
         return legal_knight_moves
 
