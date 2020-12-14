@@ -205,9 +205,10 @@ def get_south_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :param from_square: The square from a south-sliding piece attacks
     :return: np.uint64 bitboard of the southern squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     for i in range(0, -64, -8):
         bitboard |= set_bit(bitboard, from_square + i)
-    bitboard = clear_bit(bitboard, from_square)
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
@@ -218,8 +219,10 @@ def get_north_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :param from_square: The square from a north-sliding piece attacks
     :return: np.uint64 bitboard of the northern squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     for i in range(0, 64, 8):
         bitboard |= set_bit(bitboard, from_square + i)
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
@@ -230,6 +233,7 @@ def get_west_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :param from_square: The square from a west-sliding piece attacks
     :return: np.uint64 bitboard of the western squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     if from_square % 8 == 0:
         bitboard |= HOT << np.uint64(from_square)
         from_square -= 1
@@ -238,6 +242,7 @@ def get_west_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
             bitboard |= HOT << np.uint64(from_square)
             from_square -= 1
         bitboard |= HOT << np.uint64(from_square)
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
@@ -248,12 +253,14 @@ def get_east_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :param from_square: The square from a east-sliding piece attacks
     :return: np.uint64 bitboard of the eastern squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     if not from_square % 8:
         bitboard |= HOT << np.uint64(from_square)
         from_square += 1
     while not from_square % 8 == 0:
         bitboard |= HOT << np.uint64(from_square)
         from_square += 1
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
