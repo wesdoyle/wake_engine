@@ -113,26 +113,28 @@ class Position:
 
     def is_legal_move(self, move: Move) -> bool:
 
+        color_to_move = self.color_to_move
+
         if self.is_wrong_color_piece(move):
             return False
 
         if move.piece in {Piece.wN, Piece.bN}:
-            return self.update_legal_knight_moves(move).any()
+            return self.update_legal_knight_moves(move, color_to_move).any()
 
         if move.piece in {Piece.wP, Piece.bP}:
-            return self.update_legal_pawn_moves(move).any()
+            return self.update_legal_pawn_moves(move, color_to_move).any()
 
         if move.piece in {Piece.wB, Piece.bB}:
-            return self.update_legal_bishop_moves(move).any()
+            return self.update_legal_bishop_moves(move, color_to_move).any()
 
         if move.piece in {Piece.wR, Piece.bR}:
-            return self.update_legal_rook_moves(move).any()
+            return self.update_legal_rook_moves(move, color_to_move).any()
 
         if move.piece in {Piece.wQ, Piece.bQ}:
-            return self.update_legal_queen_moves(move).any()
+            return self.update_legal_queen_moves(move, color_to_move).any()
 
         if move.piece in {Piece.wK, Piece.bK}:
-            return self.update_legal_king_moves(move, self.color_to_move).any()
+            return self.update_legal_king_moves(move, color_to_move).any()
 
         print("Uncaught illegal move")
         return False
