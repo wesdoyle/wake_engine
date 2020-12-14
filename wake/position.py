@@ -2,7 +2,7 @@ import numpy as np
 
 from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
     get_southwest_ray, get_southeast_ray, get_north_ray, get_east_ray, get_south_ray, \
-    get_west_ray, make_uint64
+    get_west_ray, make_uint64, pprint_bb
 from wake.board import Board
 from wake.constants import Color, Piece, Rank, File, Square, CastleRoute
 from wake.move import Move
@@ -36,6 +36,7 @@ class Position:
         self.piece_map = {}
         self.set_initial_piece_locations()
 
+        self.white_pawn_moves = make_uint64()
         self.white_pawn_attacks = make_uint64()
         self.white_rook_attacks = make_uint64()
         self.white_knight_attacks = make_uint64()
@@ -43,6 +44,7 @@ class Position:
         self.white_queen_attacks = make_uint64()
         self.white_king_attacks = make_uint64()
 
+        self.black_pawn_moves = make_uint64()
         self.black_pawn_attacks = make_uint64()
         self.black_rook_attacks = make_uint64()
         self.black_knight_attacks = make_uint64()
@@ -99,8 +101,6 @@ class Position:
             print("Illegal move")
             return
 
-        color_to_move = self.color_to_move
-
         self.piece_map[move.piece].remove(move.from_sq)
         self.piece_map[move.piece].add(move.to_sq)
         self.halfmove_clock += 1
@@ -109,30 +109,59 @@ class Position:
 
         # TODO: Decide what's a function; move what belongs to bb updates there
 
+        self.white_rook_attacks = make_uint64()
+        self.black_rook_attacks = make_uint64()
+        self.white_bishop_attacks = make_uint64()
+        self.black_bishop_attacks = make_uint64()
+        self.white_knight_attacks = make_uint64()
+        self.black_knight_attacks = make_uint64()
+        self.white_queen_attacks = make_uint64()
+        self.black_queen_attacks = make_uint64()
+        self.white_king_attacks = make_uint64()
+        self.black_king_attacks = make_uint64()
+
         for piece, squares in self.piece_map.items():
-            if piece in {Piece.wP, Piece.bP}:
+            if piece == Piece.wP:
                 for square in squares:
-                    self.update_legal_pawn_moves(square, color_to_move)
+                    self.update_legal_pawn_moves(square, Color.WHITE)
+            if piece == Piece.bP:
+                for square in squares:
+                    self.update_legal_pawn_moves(square, Color.BLACK)
 
-            if piece in {Piece.wR, Piece.bR}:
+            if piece == Piece.wR:
                 for square in squares:
-                    self.update_legal_rook_moves(square, color_to_move)
+                    self.update_legal_rook_moves(square, Color.WHITE)
+            if piece == Piece.bR:
+                for square in squares:
+                    self.update_legal_rook_moves(square, Color.BLACK)
 
-            if piece in {Piece.wB, Piece.bB}:
+            if piece == Piece.wB:
                 for square in squares:
-                    self.update_legal_bishop_moves(square, color_to_move)
+                    self.update_legal_bishop_moves(square, Color.WHITE)
+            if piece == Piece.bB:
+                for square in squares:
+                    self.update_legal_bishop_moves(square, Color.BLACK)
 
-            if piece in {Piece.wN, Piece.bN}:
+            if piece == Piece.wN:
                 for square in squares:
-                    self.update_legal_knight_moves(square, color_to_move)
+                    self.update_legal_knight_moves(square, Color.WHITE)
+            if piece == Piece.bN:
+                for square in squares:
+                    self.update_legal_knight_moves(square, Color.BLACK)
 
-            if piece in {Piece.wQ, Piece.bQ}:
+            if piece == Piece.wQ:
                 for square in squares:
-                    self.update_legal_queen_moves(square, color_to_move)
+                    self.update_legal_queen_moves(square, Color.WHITE)
+            if piece == Piece.bQ:
+                for square in squares:
+                    self.update_legal_queen_moves(square, Color.BLACK)
 
-            if piece in {Piece.wK, Piece.bK}:
+            if piece == Piece.wK:
                 for square in squares:
-                    self.update_legal_king_moves(square, color_to_move)
+                    self.update_legal_king_moves(square, Color.WHITE)
+            if piece == Piece.bK:
+                for square in squares:
+                    self.update_legal_king_moves(square, Color.BLACK)
 
         self.color_to_move = not self.color_to_move
         return generate_fen()
@@ -356,19 +385,22 @@ class Position:
 
         legal_attack_moves[color_to_move] &= opp_occupied[color_to_move]
 
-        legal_moves = legal_non_attack_moves[color_to_move] | legal_attack_moves[color_to_move]
-
         # Handle en-passant targets
         if self.en_passant_target:
             en_passant_bb = set_bit(bitboard, self.en_passant_target)
             en_passant_move = legal_attack_moves[color_to_move] & en_passant_bb
-            legal_moves |= en_passant_move
+            if en_passant_move:
+                legal_attack_moves[color_to_move] |= en_passant_move
+
+        legal_moves = legal_non_attack_moves[color_to_move] | legal_attack_moves[color_to_move]
 
         if color_to_move == Color.WHITE:
-            self.white_pawn_attacks = legal_attack_moves[color_to_move]
+            self.white_pawn_attacks |= legal_attack_moves[color_to_move]
+            self.white_pawn_moves |= legal_non_attack_moves[color_to_move]
 
         if color_to_move == Color.BLACK:
-            self.black_pawn_attacks = legal_attack_moves[color_to_move]
+            self.black_pawn_attacks |= legal_attack_moves[color_to_move]
+            self.black_pawn_moves |= legal_non_attack_moves[color_to_move]
 
         # Handle removing own piece targets
         occupied_squares = {
