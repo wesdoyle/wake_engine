@@ -95,6 +95,13 @@ class File:
     files = [A, B, C, D, E, F, G, H]
 
 
+class CastleRoute:
+    WhiteQueenside = np.uint64('0x70')  # E1,F1,G1
+    WhiteKingside = np.uint64('0x1c')  # E1, D1, C1
+    BlackQueenside = np.uint64('0x1c00000000000000')  # E8,F8,G8
+    BlackKingside = np.uint64('0x7000000000000000')  # E8, D8, C8
+
+
 class Rank:
     x1 = {0, 1, 2, 3, 4, 5, 6, 7}
     x2 = {8, 9, 10, 11, 12, 13, 14, 15}
