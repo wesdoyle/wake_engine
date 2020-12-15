@@ -2,7 +2,7 @@ import numpy as np
 
 from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
     get_southwest_ray, get_southeast_ray, get_north_ray, get_east_ray, get_south_ray, \
-    get_west_ray, make_uint64
+    get_west_ray, make_uint64, pprint_bb
 from wake.board import Board
 from wake.constants import Color, Piece, File, Square, CastleRoute
 from wake.move import Move
@@ -171,7 +171,64 @@ class Position:
     # -------------------------------------------------------------
 
     def is_legal_move(self, move: Move) -> bool:
-        # TODO: !!!
+        if move.piece in (Piece.wP, Piece.bP):
+            return self.is_legal_pawn_move(move)
+        if move.piece in (Piece.wB, Piece.bB):
+            return self.is_legal_bishop_move(move)
+        if move.piece in (Piece.wR, Piece.bR):
+            return self.is_legal_rook_move()
+        if move.piece in (Piece.wN, Piece.bN):
+            return self.is_legal_knight_move(move)
+        if move.piece in (Piece.wQ, Piece.bQ):
+            return self.is_legal_queen_move(move)
+        if move.piece in (Piece.wK, Piece.bK):
+            return self.is_legal_king_move(move)
+
+    def is_not_pawn_motion_or_attack(self, to_sq):
+        moving_to_square_bb = set_bit(make_uint64(), to_sq)
+        if self.color_to_move == Color.WHITE:
+            if not (self.board.white_pawn_attack_bbs[to_sq]
+                    | self.board.white_pawn_attack_bbs[to_sq]) & moving_to_square_bb:
+                return False
+        if self.color_to_move == Color.BLACK:
+            if not (self.board.black_pawn_attack_bbs[to_sq]
+                    | self.board.black_pawn_attack_bbs[to_sq]) & moving_to_square_bb:
+                return False
+
+    def is_legal_pawn_move(self, move: Move) -> bool:
+        current_square_bb = set_bit(make_uint64(), move.from_sq)
+        moving_to_square_bb = set_bit(make_uint64(), move.to_sq)
+
+        if move.piece == Piece.wP:
+            if not (self.board.white_P_bb & current_square_bb):
+                return False
+            if self.is_not_pawn_motion_or_attack(move.to_sq):
+                return False
+            if (self.white_pawn_attacks & moving_to_square_bb) & ~self.board.black_pieces_bb:
+                return False
+            return True
+
+        if move.piece == Piece.bP:
+            if not (self.board.black_P_bb & current_square_bb):
+                return False
+            if not (self.board.black_pawn_motion_bbs[move.from_sq] & move.to_sq) \
+                    or (self.board.black_pawn_attack_bbs[move.from_sq] & move.to_sq):
+                return False
+            return True
+
+    def is_legal_bishop_move(self, move):
+        return True
+
+    def is_legal_rook_move(self, move):
+        return True
+
+    def is_legal_knight_move(self, move):
+        return True
+
+    def is_legal_queen_move(self, move):
+        return True
+
+    def is_legal_king_move(self, move):
         return True
 
     def is_wrong_color_piece(self, move):
