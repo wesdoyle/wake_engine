@@ -1,7 +1,7 @@
 # Wake
 
 
-<img src='Wake.png' width=400></img>
+<img src='WAKE.png' width=400></img>
 
 Livestream series in progress, but it starts here: https://www.youtube.com/watch?v=1QotIA4_jb4
 
