@@ -171,6 +171,9 @@ class Position:
     # -------------------------------------------------------------
 
     def is_legal_move(self, move: Move) -> bool:
+        """
+        For a given move, returns True iff it is legal given the Position state
+        """
         if move.piece in (Piece.wP, Piece.bP):
             return self.is_legal_pawn_move(move)
         if move.piece in (Piece.wB, Piece.bB):
@@ -184,18 +187,16 @@ class Position:
         if move.piece in (Piece.wK, Piece.bK):
             return self.is_legal_king_move(move)
 
-    def is_not_pawn_motion_or_attack(self, to_sq):
-        moving_to_square_bb = set_bit(make_uint64(), to_sq)
-        if self.color_to_move == Color.WHITE:
-            if not (self.board.white_pawn_attack_bbs[to_sq]
-                    | self.board.white_pawn_attack_bbs[to_sq]) & moving_to_square_bb:
-                return False
-        if self.color_to_move == Color.BLACK:
-            if not (self.board.black_pawn_attack_bbs[to_sq]
-                    | self.board.black_pawn_attack_bbs[to_sq]) & moving_to_square_bb:
-                return False
+    # -------------------------------------------------------------
+    # PIECE MOVE LEGALITY BY PIECE
+    # -------------------------------------------------------------
 
     def is_legal_pawn_move(self, move: Move) -> bool:
+        """
+        Returns True iff the given pawn move is legal - i.e.
+        - the to square intersects with pawn "motion" (forward) bitboard
+        - the to square is an attack and intersects with opponent piece or en passant target bitboard
+        """
         current_square_bb = set_bit(make_uint64(), move.from_sq)
         moving_to_square_bb = set_bit(make_uint64(), move.to_sq)
 
@@ -211,25 +212,88 @@ class Position:
         if move.piece == Piece.bP:
             if not (self.board.black_P_bb & current_square_bb):
                 return False
-            if not (self.board.black_pawn_motion_bbs[move.from_sq] & move.to_sq) \
-                    or (self.board.black_pawn_attack_bbs[move.from_sq] & move.to_sq):
+            if self.is_not_pawn_motion_or_attack(move.to_sq):
                 return False
             return True
 
-    def is_legal_bishop_move(self, move):
-        return True
+    def is_legal_bishop_move(self, move: Move) -> bool:
+        """
+        Returns True iff the given bishop move is legal - i.e.
+        - the to move intersects with the bishop attack bitboard
+        """
+        current_square_bb = set_bit(make_uint64(), move.from_sq)
+        if move.piece == Piece.wB:
+            if not (self.board.white_B_bb & current_square_bb):
+                return False
+            if self.is_not_bishop_attack(move.to_sq):
+                return False
+            return True
+        if move.piece == Piece.bB:
+            if not (self.board.black_B_bb & current_square_bb):
+                return False
+            if self.is_not_bishop_attack(move.to_sq):
+                return False
+            return True
 
-    def is_legal_rook_move(self, move):
-        return True
+    def is_legal_rook_move(self, move: Move) -> bool:
+        current_square_bb = set_bit(make_uint64(), move.from_sq)
+        if move.piece == Piece.wR:
+            if not (self.board.white_R_bb & current_square_bb):
+                return False
+            if self.is_not_rook_attack(move.to_sq):
+                return False
+            return True
+        if move.piece == Piece.bR:
+            if not (self.board.black_R_bb & current_square_bb):
+                return False
+            if self.is_not_rook_attack(move.to_sq):
+                return False
+            return True
 
     def is_legal_knight_move(self, move):
-        return True
+        current_square_bb = set_bit(make_uint64(), move.from_sq)
+        if move.piece == Piece.wN:
+            if not (self.board.white_N_bb & current_square_bb):
+                return False
+            if self.is_not_knight_attack(move.to_sq):
+                return False
+            return True
+        if move.piece == Piece.bN:
+            if not (self.board.black_N_bb & current_square_bb):
+                return False
+            if self.is_not_knight_attack(move.to_sq):
+                return False
+            return True
 
     def is_legal_queen_move(self, move):
-        return True
+        current_square_bb = set_bit(make_uint64(), move.from_sq)
+        if move.piece == Piece.wQ:
+            if not (self.board.white_Q_bb & current_square_bb):
+                return False
+            if self.is_not_queen_attack(move.to_sq):
+                return False
+            return True
+        if move.piece == Piece.bQ:
+            if not (self.board.black_Q_bb & current_square_bb):
+                return False
+            if self.is_not_queen_attack(move.to_sq):
+                return False
+            return True
 
     def is_legal_king_move(self, move):
-        return True
+        current_square_bb = set_bit(make_uint64(), move.from_sq)
+        if move.piece == Piece.wQ:
+            if not (self.board.white_K_bb & current_square_bb):
+                return False
+            if self.is_not_king_attack(move.to_sq):
+                return False
+            return True
+        if move.piece == Piece.bQ:
+            if not (self.board.black_K_bb & current_square_bb):
+                return False
+            if self.is_not_king_attack(move.to_sq):
+                return False
+            return True
 
     def is_wrong_color_piece(self, move):
         if self.color_to_move == Color.WHITE and move.piece not in Piece.white_pieces:
@@ -237,6 +301,66 @@ class Position:
 
         if self.color_to_move == Color.BLACK and move.piece not in Piece.black_pieces:
             return False
+
+    # -------------------------------------------------------------
+    # PIECE MOVE LEGALITY CHECKING HELPERS
+    # -------------------------------------------------------------
+
+    def is_not_pawn_motion_or_attack(self, to_sq):
+        moving_to_square_bb = set_bit(make_uint64(), to_sq)
+        if self.color_to_move == Color.WHITE:
+            if not (self.board.white_pawn_attack_bbs[to_sq]
+                    | self.board.white_pawn_attack_bbs[to_sq]) & moving_to_square_bb:
+                return False
+        if self.color_to_move == Color.BLACK:
+            if not (self.board.black_pawn_attack_bbs[to_sq]
+                    | self.board.black_pawn_attack_bbs[to_sq]) & moving_to_square_bb:
+                return False
+
+    def is_not_bishop_attack(self, to_sq):
+        moving_to_square_bb = set_bit(make_uint64(), to_sq)
+        if self.color_to_move == Color.WHITE:
+            if not (self.white_bishop_attacks & moving_to_square_bb):
+                return False
+        if self.color_to_move == Color.BLACK:
+            if not (self.black_bishop_attacks & moving_to_square_bb):
+                return False
+
+    def is_not_knight_attack(self, to_sq):
+        moving_to_square_bb = set_bit(make_uint64(), to_sq)
+        if self.color_to_move == Color.WHITE:
+            if not (self.white_knight_attacks & moving_to_square_bb):
+                return False
+        if self.color_to_move == Color.BLACK:
+            if not (self.black_knight_attacks & moving_to_square_bb):
+                return False
+
+    def is_not_king_attack(self, to_sq):
+        moving_to_square_bb = set_bit(make_uint64(), to_sq)
+        if self.color_to_move == Color.WHITE:
+            if not (self.white_king_attacks & moving_to_square_bb):
+                return False
+        if self.color_to_move == Color.BLACK:
+            if not (self.black_king_attacks & moving_to_square_bb):
+                return False
+
+    def is_not_queen_attack(self, to_sq):
+        moving_to_square_bb = set_bit(make_uint64(), to_sq)
+        if self.color_to_move == Color.WHITE:
+            if not (self.white_queen_attacks & moving_to_square_bb):
+                return False
+        if self.color_to_move == Color.BLACK:
+            if not (self.black_queen_attacks & moving_to_square_bb):
+                return False
+
+    def is_not_rook_attack(self, to_sq):
+        moving_to_square_bb = set_bit(make_uint64(), to_sq)
+        if self.color_to_move == Color.WHITE:
+            if not (self.white_rook_attacks & moving_to_square_bb):
+                return False
+        if self.color_to_move == Color.BLACK:
+            if not (self.black_rook_attacks & moving_to_square_bb):
+                return False
 
     # -------------------------------------------------------------
     # LEGAL KNIGHT MOVES
@@ -281,6 +405,7 @@ class Position:
         occupied = self.board.occupied_squares_bb
 
         northwest_ray = get_northwest_ray(bitboard, move_from_square)
+
         intersection = occupied & northwest_ray
         if intersection:
             first_blocker = bitscan_forward(intersection)
@@ -585,11 +710,11 @@ class Position:
         if color_to_move == Color.WHITE:
             kingside_blocked = self.black_attacked_squares() & CastleRoute.WhiteKingside
             queenside_blocked = self.black_attacked_squares() & CastleRoute.WhiteQueenside
-            return not kingside_blocked, not queenside_blocked
+            return not kingside_blocked.any(), not queenside_blocked.any()
 
         if color_to_move == Color.BLACK:
             kingside_blocked = self.white_attacked_squares() & CastleRoute.BlackKingside
             queenside_blocked = self.white_attacked_squares() & CastleRoute.BlackQueenside
-            return not kingside_blocked, not queenside_blocked
+            return not kingside_blocked.any(), not queenside_blocked.any()
 
         return tuple(castle_ok)
