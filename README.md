@@ -5,7 +5,7 @@
 
 Livestream series in progress, but it starts here: https://www.youtube.com/watch?v=1QotIA4_jb4
 
-Wake is a Python (numPy)-based chess engine.  It is currently a work in progress.
+Wake is a Python (NumPy)-based chess engine.  It is currently a work in progress.
 
 ## Setup & Installation
 
@@ -13,7 +13,7 @@ Wake is a Python (numPy)-based chess engine.  It is currently a work in progress
 
 ![Fork](https://i.pinimg.com/originals/b3/d0/fe/b3d0fea30a5c39a9f850b6a45b6a48c2.png)
 
-* It will create the fork like this, with your github username: 
+* It will create the fork like this, with your GitHub username: 
 
 ![AFter Fork](https://i.pinimg.com/originals/ac/9d/70/ac9d7093722b89d68d346b9b63efc6be.png)
 
