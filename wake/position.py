@@ -424,7 +424,7 @@ class Position:
     @staticmethod
     def is_castling(move):
         if move.from_sq == Square.E1:
-            if move.to_sq in {Square.G2, Square.C2}:
+            if move.to_sq in {Square.G1, Square.C1}:
                 return True
         if move.from_sq == Square.E8:
             if move.to_sq in {Square.G8, Square.E8}:
@@ -746,10 +746,10 @@ class Position:
             king_moves &= ~own_piece_targets
 
         # Handle Castling
-        can_castle = self.can_castle(self.color_to_move)
+        can_castle = self.can_castle(color_to_move)
 
         if can_castle[0] or can_castle[1]:
-            king_moves |= self.add_castling_moves(king_moves, can_castle)
+            king_moves |= self.add_castling_moves(king_moves, can_castle, color_to_move)
 
         if color_to_move == Color.WHITE:
             self.white_king_attacks |= king_moves
@@ -757,20 +757,20 @@ class Position:
         if color_to_move == Color.BLACK:
             self.black_king_attacks |= king_moves
 
-    def add_castling_moves(self, bitboard: np.uint64, can_castle: list) -> np.uint64:
+    @staticmethod
+    def add_castling_moves(bitboard: np.uint64, can_castle: list, color_to_move) -> np.uint64:
         """
         Adds castling squares to the bitboard
         :param bitboard: numpy uint64 bitboard
         :return:
         """
-        print("ADDING CASTLING MOVES")
-        if self.color_to_move == Color.WHITE:
+        if color_to_move == Color.WHITE:
             if can_castle[0]:
                 bitboard |= set_bit(bitboard, Square.G1)
             if can_castle[1]:
                 bitboard |= set_bit(bitboard, Square.C1)
 
-        if self.color_to_move == Color.BLACK:
+        if color_to_move == Color.BLACK:
             if can_castle[0]:
                 bitboard |= set_bit(bitboard, Square.G8)
             if can_castle[1]:
@@ -791,15 +791,15 @@ class Position:
             return [0, 0]
 
         if color_to_move == Color.WHITE:
-            kingside_blocked = self.black_attacked_squares & CastleRoute.WhiteKingside
-            queenside_blocked = self.black_attacked_squares & CastleRoute.WhiteQueenside
+            kingside_blocked = (self.black_attacked_squares | (self.board.white_pieces_bb & ~self.board.white_K_bb)) & CastleRoute.WhiteKingside
+            queenside_blocked = (self.black_attacked_squares | (self.board.white_pieces_bb & ~self.board.white_K_bb)) & CastleRoute.WhiteQueenside
             is_rook_on_h1 = self.board.white_R_bb & set_bit(make_uint64(), Square.H1)
             is_rook_on_a1 = self.board.white_R_bb & set_bit(make_uint64(), Square.A1)
             return [not kingside_blocked.any() and is_rook_on_h1.any(), not queenside_blocked.any() and is_rook_on_a1.any()]
 
         if color_to_move == Color.BLACK:
-            kingside_blocked = self.white_attacked_squares & CastleRoute.BlackKingside
-            queenside_blocked = self.white_attacked_squares & CastleRoute.BlackQueenside
+            kingside_blocked = (self.white_attacked_squares | (self.board.black_pieces_bb & ~self.board.black_K_bb)) & CastleRoute.BlackKingside
+            queenside_blocked = (self.white_attacked_squares | (self.board.black_pieces_bb & ~self.board.black_K_bb)) & CastleRoute.BlackQueenside
             is_rook_on_h8 = self.board.black_R_bb & set_bit(make_uint64(), Square.H8)
             is_rook_on_a8 = self.board.black_R_bb & set_bit(make_uint64(), Square.A8)
             return [not kingside_blocked.any() and is_rook_on_h8.any(), not queenside_blocked.any() and is_rook_on_a8.any()]

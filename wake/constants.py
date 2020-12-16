@@ -96,10 +96,10 @@ class File:
 
 
 class CastleRoute:
-    WhiteQueenside = np.uint64(0x70)  # E1,F1,G1
-    WhiteKingside = np.uint64(0x1c)  # E1, D1, C1
-    BlackQueenside = np.uint64(0x1c00000000000000)  # E8,F8,G8
-    BlackKingside = np.uint64(0x7000000000000000)  # E8, D8, C8
+    WhiteKingside = np.uint64(0x70)  # E1,F1,G1
+    WhiteQueenside = np.uint64(0x1c)  # E1, D1, C1
+    BlackKingside = np.uint64(0x1c00000000000000)  # E8,F8,G8
+    BlackQueenside = np.uint64(0x7000000000000000)  # E8, D8, C8
 
 
 class Rank:
