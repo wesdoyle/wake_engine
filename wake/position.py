@@ -11,11 +11,6 @@ from wake.move import Move
 # TODO: possible side-effects from mutating move all over
 #  the place in move legality checking
 
-def generate_fen():
-    """ TODO: Generate FEN for the current state """
-    return '-- TODO: generate FEN --'
-
-
 class Position:
     """
     Represents the internal state of a chess position
@@ -29,7 +24,7 @@ class Position:
 
         self.color_to_move = Color.WHITE
 
-        self.castle_rights = {Color.WHITE: True, Color.BLACK: True}
+        self.castle_rights = {Color.WHITE: [1, 1], Color.BLACK: [1, 1]}
         self.en_passant_target = None  # target square
         self.halfmove_clock = 0
 
@@ -105,10 +100,96 @@ class Position:
         self.piece_map[move.piece].add(move.to_sq)
         self.halfmove_clock += 1
 
-        self.board.update_bitboards(self.piece_map)
+        castle_rights = self.castle_rights[self.color_to_move]
 
-        # TODO: Decide what's a function; move what belongs to bb updates there
+        if castle_rights[0] or castle_rights[1]:
+            self.adjust_castling_rights(move)
 
+        # Move the pieces
+        self.board.update_position_bitboards(self.piece_map)
+
+        # Update the possible moves
+        self.update_attack_bitboards()
+
+        self.color_to_move = not self.color_to_move
+
+        return self.generate_fen()
+
+    def update_attack_bitboards(self):
+        self.reset_attack_bitboards()
+        for piece, squares in self.piece_map.items():
+
+            # PAWNS
+            if piece == Piece.wP:
+                for square in squares:
+                    self.update_legal_pawn_moves(square, Color.WHITE)
+            if piece == Piece.bP:
+                for square in squares:
+                    self.update_legal_pawn_moves(square, Color.BLACK)
+
+            # ROOKS
+            if piece == Piece.wR:
+                for square in squares:
+                    self.update_legal_rook_moves(square, Color.WHITE)
+            if piece == Piece.bR:
+                for square in squares:
+                    self.update_legal_rook_moves(square, Color.BLACK)
+
+            # KNIGHTS
+            if piece == Piece.wN:
+                for square in squares:
+                    self.update_legal_knight_moves(square, Color.WHITE)
+            if piece == Piece.bN:
+                for square in squares:
+                    self.update_legal_knight_moves(square, Color.BLACK)
+
+            # BISHOPS
+            if piece == Piece.wB:
+                for square in squares:
+                    self.update_legal_bishop_moves(square, Color.WHITE)
+            if piece == Piece.bB:
+                for square in squares:
+                    self.update_legal_bishop_moves(square, Color.BLACK)
+
+            # QUEENS
+            if piece == Piece.wQ:
+                for square in squares:
+                    self.update_legal_queen_moves(square, Color.WHITE)
+            if piece == Piece.bQ:
+                for square in squares:
+                    self.update_legal_queen_moves(square, Color.BLACK)
+
+            # KINGS
+            if piece == Piece.wK:
+                for square in squares:
+                    self.update_legal_king_moves(square, Color.WHITE)
+
+            if piece == Piece.bK:
+                for square in squares:
+                    self.update_legal_king_moves(square, Color.BLACK)
+
+    def adjust_castling_rights(self, move):
+        """
+        TODO: Handle captured rooks that haven't moved
+        """
+        if move.piece in {Piece.wK, Piece.bK, Piece.wR, Piece.bR}:
+            if move.piece == Piece.wK:
+                self.castle_rights[Color.WHITE] = [0, 0]
+            if move.piece == Piece.bK:
+                self.castle_rights[Color.BLACK] = [0, 0]
+
+            if move.piece == Piece.wR:
+                if move.from_sq == Square.H1:
+                    self.castle_rights[Color.WHITE][0] = 0
+                if move.from_sq == Square.A1:
+                    self.castle_rights[Color.WHITE][1] = 0
+            if move.piece == Piece.bR:
+                if move.from_sq == Square.H8:
+                    self.castle_rights[Color.WHITE][0] = 0
+                if move.from_sq == Square.A8:
+                    self.castle_rights[Color.WHITE][1] = 0
+
+    def reset_attack_bitboards(self):
         self.white_rook_attacks = make_uint64()
         self.black_rook_attacks = make_uint64()
         self.white_bishop_attacks = make_uint64()
@@ -120,52 +201,6 @@ class Position:
         self.white_king_attacks = make_uint64()
         self.black_king_attacks = make_uint64()
 
-        for piece, squares in self.piece_map.items():
-            if piece == Piece.wP:
-                for square in squares:
-                    self.update_legal_pawn_moves(square, Color.WHITE)
-            if piece == Piece.bP:
-                for square in squares:
-                    self.update_legal_pawn_moves(square, Color.BLACK)
-
-            if piece == Piece.wR:
-                for square in squares:
-                    self.update_legal_rook_moves(square, Color.WHITE)
-            if piece == Piece.bR:
-                for square in squares:
-                    self.update_legal_rook_moves(square, Color.BLACK)
-
-            if piece == Piece.wB:
-                for square in squares:
-                    self.update_legal_bishop_moves(square, Color.WHITE)
-            if piece == Piece.bB:
-                for square in squares:
-                    self.update_legal_bishop_moves(square, Color.BLACK)
-
-            if piece == Piece.wN:
-                for square in squares:
-                    self.update_legal_knight_moves(square, Color.WHITE)
-            if piece == Piece.bN:
-                for square in squares:
-                    self.update_legal_knight_moves(square, Color.BLACK)
-
-            if piece == Piece.wQ:
-                for square in squares:
-                    self.update_legal_queen_moves(square, Color.WHITE)
-            if piece == Piece.bQ:
-                for square in squares:
-                    self.update_legal_queen_moves(square, Color.BLACK)
-
-            if piece == Piece.wK:
-                for square in squares:
-                    self.update_legal_king_moves(square, Color.WHITE)
-            if piece == Piece.bK:
-                for square in squares:
-                    self.update_legal_king_moves(square, Color.BLACK)
-
-        self.color_to_move = not self.color_to_move
-        return generate_fen()
-
     # -------------------------------------------------------------
     # MOVE LEGALITY CHECKING
     # -------------------------------------------------------------
@@ -174,18 +209,24 @@ class Position:
         """
         For a given move, returns True iff it is legal given the Position state
         """
-        if move.piece in (Piece.wP, Piece.bP):
+        piece = move.piece
+        if piece in (Piece.wP, Piece.bP):
             return self.is_legal_pawn_move(move)
-        if move.piece in (Piece.wB, Piece.bB):
+        if piece in (Piece.wB, Piece.bB):
             return self.is_legal_bishop_move(move)
-        if move.piece in (Piece.wR, Piece.bR):
+        if piece in (Piece.wR, Piece.bR):
             return self.is_legal_rook_move()
-        if move.piece in (Piece.wN, Piece.bN):
+        if piece in (Piece.wN, Piece.bN):
             return self.is_legal_knight_move(move)
-        if move.piece in (Piece.wQ, Piece.bQ):
+        if piece in (Piece.wQ, Piece.bQ):
             return self.is_legal_queen_move(move)
-        if move.piece in (Piece.wK, Piece.bK):
-            return self.is_legal_king_move(move)
+        if piece in (Piece.wK, Piece.bK):
+            is_legal_king_move = self.is_legal_king_move(move)
+            if not is_legal_king_move:
+                return False
+            if self.is_castling(move):
+                move.is_castling = True
+            return True
 
     # -------------------------------------------------------------
     # PIECE MOVE LEGALITY BY PIECE
@@ -282,13 +323,13 @@ class Position:
 
     def is_legal_king_move(self, move):
         current_square_bb = set_bit(make_uint64(), move.from_sq)
-        if move.piece == Piece.wQ:
+        if move.piece == Piece.wK:
             if not (self.board.white_K_bb & current_square_bb):
                 return False
             if self.is_not_king_attack(move.to_sq):
                 return False
             return True
-        if move.piece == Piece.bQ:
+        if move.piece == Piece.bK:
             if not (self.board.black_K_bb & current_square_bb):
                 return False
             if self.is_not_king_attack(move.to_sq):
@@ -361,6 +402,16 @@ class Position:
         if self.color_to_move == Color.BLACK:
             if not (self.black_rook_attacks & moving_to_square_bb):
                 return False
+
+    @staticmethod
+    def is_castling(move):
+        if move.from_sq == Square.E1:
+            if move.to_sq in {Square.G2, Square.C2}:
+                return True
+        if move.from_sq == Square.E8:
+            if move.to_sq in {Square.G8, Square.E8}:
+                return True
+        return False
 
     # -------------------------------------------------------------
     # LEGAL KNIGHT MOVES
@@ -652,11 +703,6 @@ class Position:
         """
         king_moves = make_uint64()
 
-        # Handle Castling
-        # if move.is_castling:
-        #     if self.can_castle(self.color_to_move):
-        #         king_moves = self.add_castling_moves(king_moves)
-
         for i in [8, -8]:
             # North-South
             king_moves |= set_bit(king_moves, np.uint64(move_from_square + np.uint64(i)))
@@ -679,42 +725,54 @@ class Position:
         if color_to_move == Color.BLACK:
             self.black_king_attacks |= king_moves
 
-    @staticmethod
-    def add_castling_moves(bitboard: np.uint64, color_to_move: int) -> np.uint64:
+        # Handle Castling
+        can_castle = self.can_castle(self.color_to_move)
+
+        if can_castle[0] or can_castle[1]:
+            king_moves |= self.add_castling_moves(king_moves, can_castle)
+
+    def add_castling_moves(self, bitboard: np.uint64, can_castle: list) -> np.uint64:
         """
         Adds castling squares to the bitboard
         :param bitboard: numpy uint64 bitboard
-        :param color_to_move: the current color to move
         :return:
         """
-        if color_to_move == Color.WHITE:
-            bitboard |= set_bit(bitboard, Square.C1)
-            bitboard |= set_bit(bitboard, Square.G1)
-        if color_to_move == Color.BLACK:
-            bitboard |= set_bit(bitboard, Square.C8)
-            bitboard |= set_bit(bitboard, Square.G8)
+        if self.color_to_move == Color.WHITE:
+            if can_castle[0]:
+                bitboard |= set_bit(bitboard, Square.G1)
+            if can_castle[1]:
+                bitboard |= set_bit(bitboard, Square.C1)
+
+        if self.color_to_move == Color.BLACK:
+            if can_castle[0]:
+                bitboard |= set_bit(bitboard, Square.G8)
+            if can_castle[1]:
+                bitboard |= set_bit(bitboard, Square.C8)
+
         return bitboard
 
-    def can_castle(self, color_to_move) -> tuple:
+    def can_castle(self, color_to_move) -> list:
         """
         Returns a tuple of (bool, bool) can castle on (kingside, queenside)
         and can move through the castling squares without being in check.
         :return: Tuple (bool, bool) iff the color_to_move has castling rights
         and can move through the castling squares without being in check on (kingside, queenside)
         """
-        castle_ok = [0, 0]
+        castle_rights = self.castle_rights[color_to_move]
 
-        if not self.castle_rights[color_to_move]:
-            return tuple(castle_ok)
+        if not castle_rights[0] or castle_rights[1]:
+            return [0, 0]
 
         if color_to_move == Color.WHITE:
             kingside_blocked = self.black_attacked_squares() & CastleRoute.WhiteKingside
             queenside_blocked = self.black_attacked_squares() & CastleRoute.WhiteQueenside
-            return not kingside_blocked.any(), not queenside_blocked.any()
+            return [not kingside_blocked.any(), not queenside_blocked.any()]
 
         if color_to_move == Color.BLACK:
             kingside_blocked = self.white_attacked_squares() & CastleRoute.BlackKingside
             queenside_blocked = self.white_attacked_squares() & CastleRoute.BlackQueenside
-            return not kingside_blocked.any(), not queenside_blocked.any()
+            return [not kingside_blocked.any(), not queenside_blocked.any()]
 
-        return tuple(castle_ok)
+    def generate_fen(self):
+        """ TODO: Generate FEN for the current state """
+        return '-- TODO: generate FEN --'
