@@ -124,7 +124,7 @@ class Board:
     #  BOARD UPDATES
     # -------------------------------------------------------------
 
-    def update_bitboards(self, piece_map):
+    def update_position_bitboards(self, piece_map):
         for key, val in piece_map.items():
             # TODO: make more efficient by storing and updating the piece group that changed
 

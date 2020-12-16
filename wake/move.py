@@ -1,3 +1,6 @@
+from wake.constants import Piece, Square
+
+
 class Move:
     """
     Represents the motion of a piece from an origin square to a target square
@@ -9,6 +12,7 @@ class Move:
         self.to_sq = squares[1]
         self.is_capture = False
         self.is_promotion = False
+        self.is_castling = False
 
     def is_promotion(self):
         # get the promotion type

@@ -79,16 +79,16 @@ def bitscan_reverse(bitboard: np.uint64) -> np.uint64 or int:
     result = np.uint64(0)
 
     if bitboard > 0xFFFFFFFF:
-        bitboard >>= 32
-        result = 32
+        bitboard >>= np.uint(32)
+        result = np.uint(32)
 
     if bitboard > 0xFFFF:
-        bitboard >>= 16
-        result += 16
+        bitboard >>= np.uint(16)
+        result += np.uint(16)
 
     if bitboard > 0xFF:
-        bitboard >>= 8
-        result += 8
+        bitboard >>= np.uint(8)
+        result += np.uint(8)
 
     return result + lookup_most_significant_1_bit(bitboard)
 
@@ -97,7 +97,7 @@ def bitscan_reverse(bitboard: np.uint64) -> np.uint64 or int:
 # BIT MANIPULATION
 # -------------------------------------------------------------
 
-def set_bit(bitboard: np.uint64, bit: int or np.uint64) -> np.uint64:
+def set_bit(bitboard: object, bit: object) -> object:
     """
     Sets a bit in the provided unsigned 64-bit integer bitboard representation to 1
     :param bitboard: np.uint64 number
@@ -205,9 +205,10 @@ def get_south_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :param from_square: The square from a south-sliding piece attacks
     :return: np.uint64 bitboard of the southern squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     for i in range(0, -64, -8):
         bitboard |= set_bit(bitboard, from_square + i)
-    bitboard = clear_bit(bitboard, from_square)
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
@@ -218,8 +219,10 @@ def get_north_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :param from_square: The square from a north-sliding piece attacks
     :return: np.uint64 bitboard of the northern squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     for i in range(0, 64, 8):
         bitboard |= set_bit(bitboard, from_square + i)
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
@@ -230,6 +233,7 @@ def get_west_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :param from_square: The square from a west-sliding piece attacks
     :return: np.uint64 bitboard of the western squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     if from_square % 8 == 0:
         bitboard |= HOT << np.uint64(from_square)
         from_square -= 1
@@ -238,6 +242,7 @@ def get_west_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
             bitboard |= HOT << np.uint64(from_square)
             from_square -= 1
         bitboard |= HOT << np.uint64(from_square)
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
@@ -248,12 +253,14 @@ def get_east_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :param from_square: The square from a east-sliding piece attacks
     :return: np.uint64 bitboard of the eastern squares attacked on an otherwise empty board
     """
+    original_from_square = from_square
     if not from_square % 8:
         bitboard |= HOT << np.uint64(from_square)
         from_square += 1
     while not from_square % 8 == 0:
         bitboard |= HOT << np.uint64(from_square)
         from_square += 1
+    bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
 
