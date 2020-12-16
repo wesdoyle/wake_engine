@@ -2,9 +2,9 @@ import numpy as np
 
 from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
     get_southwest_ray, get_southeast_ray, get_north_ray, get_east_ray, get_south_ray, \
-    get_west_ray, make_uint64, pprint_bb
+    get_west_ray, make_uint64, pprint_bb, generate_king_attack_bb_from_square
 from wake.board import Board
-from wake.constants import Color, Piece, File, Square, CastleRoute
+from wake.constants import Color, Piece, Square, CastleRoute
 from wake.move import Move
 
 
@@ -259,7 +259,7 @@ class Position:
         if move.piece == Piece.wP:
             if not (self.board.white_P_bb & current_square_bb):
                 return False
-            if self.is_not_pawn_motion_or_attack(move.to_sq):
+            if self.is_not_pawn_motion_or_attack(move):
                 return False
             if (self.white_pawn_attacks & moving_to_square_bb) & ~self.board.black_pieces_bb:
                 return False
@@ -268,7 +268,7 @@ class Position:
         if move.piece == Piece.bP:
             if not (self.board.black_P_bb & current_square_bb):
                 return False
-            if self.is_not_pawn_motion_or_attack(move.to_sq):
+            if self.is_not_pawn_motion_or_attack(move):
                 return False
             return True
 
@@ -362,52 +362,55 @@ class Position:
     # PIECE MOVE LEGALITY CHECKING HELPERS
     # -------------------------------------------------------------
 
-    def is_not_pawn_motion_or_attack(self, to_sq):
-        moving_to_square_bb = set_bit(make_uint64(), to_sq)
+    def is_not_pawn_motion_or_attack(self, move):
+        to_sq_bb = set_bit(make_uint64(), move.to_sq)
         if self.color_to_move == Color.WHITE:
-            if not (self.board.white_pawn_attack_bbs[to_sq]
-                    | self.board.white_pawn_attack_bbs[to_sq]) & moving_to_square_bb:
-                return False
+            if not (self.board.white_pawn_motion_bbs[move.from_sq]
+                    | self.board.white_pawn_attack_bbs[move.from_sq]) & to_sq_bb:
+                return True
         if self.color_to_move == Color.BLACK:
-            if not (self.board.black_pawn_attack_bbs[to_sq]
-                    | self.board.black_pawn_attack_bbs[to_sq]) & moving_to_square_bb:
-                return False
+            if not (self.board.black_pawn_motion_bbs[move.from_sq]
+                    | self.board.black_pawn_attack_bbs[move.from_sq]) & to_sq_bb:
+                return True
 
     def is_not_bishop_attack(self, to_sq):
         moving_to_square_bb = set_bit(make_uint64(), to_sq)
         if self.color_to_move == Color.WHITE:
             if not (self.white_bishop_attacks & moving_to_square_bb):
-                return False
+                return True
         if self.color_to_move == Color.BLACK:
             if not (self.black_bishop_attacks & moving_to_square_bb):
-                return False
+                return True
 
     def is_not_knight_attack(self, to_sq):
         moving_to_square_bb = set_bit(make_uint64(), to_sq)
         if self.color_to_move == Color.WHITE:
             if not (self.white_knight_attacks & moving_to_square_bb):
-                return False
+                return True
         if self.color_to_move == Color.BLACK:
             if not (self.black_knight_attacks & moving_to_square_bb):
-                return False
+                return True
 
     def is_not_king_attack(self, to_sq):
         moving_to_square_bb = set_bit(make_uint64(), to_sq)
         if self.color_to_move == Color.WHITE:
             if not (self.white_king_attacks & moving_to_square_bb):
-                return False
+                print("WHITE KING ATTACKS")
+                pprint_bb(self.white_king_attacks)
+                return True
         if self.color_to_move == Color.BLACK:
             if not (self.black_king_attacks & moving_to_square_bb):
-                return False
+                return True
+        return False
 
     def is_not_queen_attack(self, to_sq):
         moving_to_square_bb = set_bit(make_uint64(), to_sq)
         if self.color_to_move == Color.WHITE:
             if not (self.white_queen_attacks & moving_to_square_bb):
-                return False
+                return True
         if self.color_to_move == Color.BLACK:
             if not (self.black_queen_attacks & moving_to_square_bb):
-                return False
+                return True
 
     def is_not_rook_attack(self, to_sq):
         moving_to_square_bb = set_bit(make_uint64(), to_sq)
@@ -574,6 +577,10 @@ class Position:
         if color_to_move == Color.BLACK:
             self.black_rook_attacks |= legal_moves
 
+    # -------------------------------------------------------------
+    # LEGAL PAWN MOVES
+    # -------------------------------------------------------------
+
     def update_legal_pawn_moves(self, move_from_square: np.uint64, color_to_move: int):
         """
         Pseudo-Legal Pawn Moves:
@@ -625,6 +632,10 @@ class Position:
         if color_to_move == Color.BLACK:
             self.black_pawn_attacks |= legal_attack_moves[color_to_move]
             self.black_pawn_moves |= legal_non_attack_moves[color_to_move]
+
+    # -------------------------------------------------------------
+    # LEGAL QUEEN MOVES
+    # -------------------------------------------------------------
 
     def update_legal_queen_moves(self, move_from_square: np.uint64, color_to_move: int):
         """
@@ -709,36 +720,30 @@ class Position:
         if color_to_move == Color.BLACK:
             self.black_queen_attacks |= legal_moves
 
-    def update_legal_king_moves(self, move_from_square: np.uint64, color_to_move: bool):
+    # -------------------------------------------------------------
+    # LEGAL KING MOVES
+    # -------------------------------------------------------------
+
+    def update_legal_king_moves(self, move_from_square: int, color_to_move: bool):
         """
         Pseudo-Legal King Moves: one step in any direction
         :param move_from_square: the proposed square from which the king is to move
         :param color_to_move: the current color to move
         :return: True iff Move is legal
         """
-        king_moves = make_uint64()
 
-        for i in [8, -8]:
-            # North-South
-            king_moves |= set_bit(king_moves, np.uint64(move_from_square + np.uint64(i)))
-        for i in [1, 9, -7]:
-            # East (mask the A file)
-            king_moves |= set_bit(king_moves, np.uint64(move_from_square + i) & ~np.uint64(File.hexA))
-        for i in [-1, -9, 7]:
-            # West (mask the H file)
-            king_moves |= set_bit(king_moves, np.uint64(move_from_square + i) & ~np.uint64(File.hexH))
+        king_moves = generate_king_attack_bb_from_square(move_from_square)
 
-        # remove own piece targets
-        own_piece_targets = self.get_occupied_squares_by_color[color_to_move]
-
-        if own_piece_targets:
-            king_moves &= ~own_piece_targets
+        own_piece_targets = None
 
         if color_to_move == Color.WHITE:
-            self.white_king_attacks |= king_moves
+            own_piece_targets = self.board.white_pieces_bb
 
         if color_to_move == Color.BLACK:
-            self.black_king_attacks |= king_moves
+            own_piece_targets = self.board.black_pieces_bb
+
+        if own_piece_targets.any():
+            king_moves &= ~own_piece_targets
 
         # Handle Castling
         can_castle = self.can_castle(self.color_to_move)
@@ -746,12 +751,19 @@ class Position:
         if can_castle[0] or can_castle[1]:
             king_moves |= self.add_castling_moves(king_moves, can_castle)
 
+        if color_to_move == Color.WHITE:
+            self.white_king_attacks |= king_moves
+
+        if color_to_move == Color.BLACK:
+            self.black_king_attacks |= king_moves
+
     def add_castling_moves(self, bitboard: np.uint64, can_castle: list) -> np.uint64:
         """
         Adds castling squares to the bitboard
         :param bitboard: numpy uint64 bitboard
         :return:
         """
+        print("ADDING CASTLING MOVES")
         if self.color_to_move == Color.WHITE:
             if can_castle[0]:
                 bitboard |= set_bit(bitboard, Square.G1)
@@ -775,24 +787,23 @@ class Position:
         """
         castle_rights = self.castle_rights[color_to_move]
 
-        if not castle_rights[0] or castle_rights[1]:
+        if not castle_rights[0] or not castle_rights[1]:
             return [0, 0]
 
         if color_to_move == Color.WHITE:
-            kingside_blocked = self.black_attacked_squares() & CastleRoute.WhiteKingside
-            queenside_blocked = self.black_attacked_squares() & CastleRoute.WhiteQueenside
+            kingside_blocked = self.black_attacked_squares & CastleRoute.WhiteKingside
+            queenside_blocked = self.black_attacked_squares & CastleRoute.WhiteQueenside
             is_rook_on_h1 = self.board.white_R_bb & set_bit(make_uint64(), Square.H1)
             is_rook_on_a1 = self.board.white_R_bb & set_bit(make_uint64(), Square.A1)
-            return [not kingside_blocked.any() and is_rook_on_h1, not queenside_blocked.any() and is_rook_on_a1]
+            return [not kingside_blocked.any() and is_rook_on_h1.any(), not queenside_blocked.any() and is_rook_on_a1.any()]
 
         if color_to_move == Color.BLACK:
-            kingside_blocked = self.white_attacked_squares() & CastleRoute.BlackKingside
-            queenside_blocked = self.white_attacked_squares() & CastleRoute.BlackQueenside
+            kingside_blocked = self.white_attacked_squares & CastleRoute.BlackKingside
+            queenside_blocked = self.white_attacked_squares & CastleRoute.BlackQueenside
             is_rook_on_h8 = self.board.black_R_bb & set_bit(make_uint64(), Square.H8)
             is_rook_on_a8 = self.board.black_R_bb & set_bit(make_uint64(), Square.A8)
-            return [not kingside_blocked.any() and is_rook_on_h8, not queenside_blocked.any() and is_rook_on_a8]
+            return [not kingside_blocked.any() and is_rook_on_h8.any(), not queenside_blocked.any() and is_rook_on_a8.any()]
 
     def generate_fen(self):
         """ TODO: Generate FEN for the current state """
         return '-- TODO: generate FEN --'
-
