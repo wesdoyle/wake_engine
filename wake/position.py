@@ -98,6 +98,10 @@ class Position:
 
         self.piece_map[move.piece].remove(move.from_sq)
         self.piece_map[move.piece].add(move.to_sq)
+
+        if move.is_castling:
+            self.move_rooks_for_castling(move)
+
         self.halfmove_clock += 1
 
         castle_rights = self.castle_rights[self.color_to_move]
@@ -169,9 +173,6 @@ class Position:
                     self.update_legal_king_moves(square, Color.BLACK)
 
     def adjust_castling_rights(self, move):
-        """
-        TODO: Handle captured rooks that haven't moved
-        """
         if move.piece in {Piece.wK, Piece.bK, Piece.wR, Piece.bR}:
             if move.piece == Piece.wK:
                 self.castle_rights[Color.WHITE] = [0, 0]
@@ -188,6 +189,20 @@ class Position:
                     self.castle_rights[Color.WHITE][0] = 0
                 if move.from_sq == Square.A8:
                     self.castle_rights[Color.WHITE][1] = 0
+
+    def move_rooks_for_castling(self, move):
+        rook_color_map = {
+            Color.WHITE: Piece.wR,
+            Color.BLACK: Piece.bR
+        }
+        square_map = {
+            Square.G1: (Square.H1, Square.F1),
+            Square.C1: (Square.A1, Square.D1),
+            Square.G8: (Square.H8, Square.F8),
+            Square.C8: (Square.A8, Square.D8),
+        }
+        self.piece_map[rook_color_map[self.color_to_move]].remove(square_map[move.to_sq][0])
+        self.piece_map[rook_color_map[self.color_to_move]].add(square_map[move.to_sq][1])
 
     def reset_attack_bitboards(self):
         self.white_rook_attacks = make_uint64()
@@ -766,13 +781,18 @@ class Position:
         if color_to_move == Color.WHITE:
             kingside_blocked = self.black_attacked_squares() & CastleRoute.WhiteKingside
             queenside_blocked = self.black_attacked_squares() & CastleRoute.WhiteQueenside
-            return [not kingside_blocked.any(), not queenside_blocked.any()]
+            is_rook_on_h1 = self.board.white_R_bb & set_bit(make_uint64(), Square.H1)
+            is_rook_on_a1 = self.board.white_R_bb & set_bit(make_uint64(), Square.A1)
+            return [not kingside_blocked.any() and is_rook_on_h1, not queenside_blocked.any() and is_rook_on_a1]
 
         if color_to_move == Color.BLACK:
             kingside_blocked = self.white_attacked_squares() & CastleRoute.BlackKingside
             queenside_blocked = self.white_attacked_squares() & CastleRoute.BlackQueenside
-            return [not kingside_blocked.any(), not queenside_blocked.any()]
+            is_rook_on_h8 = self.board.black_R_bb & set_bit(make_uint64(), Square.H8)
+            is_rook_on_a8 = self.board.black_R_bb & set_bit(make_uint64(), Square.A8)
+            return [not kingside_blocked.any() and is_rook_on_h8, not queenside_blocked.any() and is_rook_on_a8]
 
     def generate_fen(self):
         """ TODO: Generate FEN for the current state """
         return '-- TODO: generate FEN --'
+
