@@ -97,7 +97,7 @@ def bitscan_reverse(bitboard: np.uint64) -> np.uint64 or int:
 # BIT MANIPULATION
 # -------------------------------------------------------------
 
-def set_bit(bitboard: object, bit: object) -> object:
+def set_bit(bitboard: np.uint64, bit: int) -> np.uint64:
     """
     Sets a bit in the provided unsigned 64-bit integer bitboard representation to 1
     :param bitboard: np.uint64 number

@@ -61,28 +61,28 @@ class Board:
         return self.white_pieces_bb | self.black_pieces_bb
 
     @property
-    def white_P_east_attacks(self):
+    def white_pawn_east_attacks(self):
         # White pawn east attacks are north east (+9) AND NOT the A File
         return (self.white_P_bb << np.uint64(9)) & ~np.uint64(File.hexA)
 
     @property
-    def white_P_west_attacks(self):
+    def white_pawn_west_attacks(self):
         # White pawn west attacks are north west (+7) AND NOT the H File
         return (self.white_P_bb << np.uint64(7)) & ~np.uint64(File.hexH)
 
     @property
     def white_pawn_attacks(self):
-        return self.white_P_east_attacks | self.white_P_west_attacks
+        return self.white_pawn_east_attacks | self.white_pawn_west_attacks
 
     @property
     def black_pawn_east_attacks(self):
         # Black pawn east attacks are south east (-7) AND NOT the A File
-        return (self.white_P_bb >> np.uint64(7)) & ~np.uint64(File.hexA)
+        return (self.black_P_bb >> np.uint64(7)) & ~np.uint64(File.hexA)
 
     @property
     def black_pawn_west_attacks(self):
         # Black pawn west attacks are south west (-9) AND NOT the H File
-        return (self.white_P_bb >> np.uint64(9)) & ~np.uint64(File.hexH)
+        return (self.black_P_bb >> np.uint64(9)) & ~np.uint64(File.hexH)
 
     @property
     def black_pawn_attacks(self):
@@ -168,7 +168,7 @@ class Board:
             elif key == Piece.bR:
                 self.black_R_bb = np.uint64(0)
                 for bit in val:
-                    self.black_P_bb |= set_bit(self.black_R_bb, np.uint64(bit))
+                    self.black_R_bb |= set_bit(self.black_R_bb, np.uint64(bit))
 
             elif key == Piece.bN:
                 self.black_N_bb = np.uint64(0)

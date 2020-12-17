@@ -97,6 +97,9 @@ class Position:
             print("Illegal move")
             return
 
+        if move.is_capture:
+            self.remove_opponent_piece_from_square(move.to_sq)
+
         self.piece_map[move.piece].remove(move.from_sq)
         self.piece_map[move.piece].add(move.to_sq)
 
@@ -134,6 +137,15 @@ class Position:
         self.color_to_move = not self.color_to_move
 
         return self.generate_fen()
+
+    def remove_opponent_piece_from_square(self, to_sq):
+        # TODO: Inefficient
+        target = None
+        for k, v in self.piece_map.items():
+            if to_sq in v:
+                target = k
+                break
+        self.piece_map[target].remove(to_sq)
 
     def update_attack_bitboards(self):
         self.reset_attack_bitboards()
@@ -241,6 +253,10 @@ class Position:
         For a given move, returns True iff it is legal given the Position state
         """
         piece = move.piece
+
+        if self.is_capture(move):
+            move.is_capture = True
+
         if piece in (Piece.wP, Piece.bP):
             is_legal_pawn_move = self.is_legal_pawn_move(move)
             if not is_legal_pawn_move:
@@ -270,6 +286,19 @@ class Position:
                 move.is_castling = True
             return True
 
+    def is_capture(self, move):
+        moving_to_square_bb = set_bit(make_uint64(), move.to_sq)
+
+        if self.color_to_move == Color.WHITE:
+            intersects = moving_to_square_bb & self.board.black_pieces_bb
+            if intersects.any():
+                return True
+        if self.color_to_move == Color.BLACK:
+            intersects = moving_to_square_bb & self.board.white_pieces_bb
+            if intersects.any():
+                return True
+        return False
+
     # -------------------------------------------------------------
     # PIECE MOVE LEGALITY BY PIECE
     # -------------------------------------------------------------
@@ -289,8 +318,6 @@ class Position:
             if self.is_not_pawn_motion_or_attack(move):
                 return False
             if (self.white_pawn_attacks & moving_to_square_bb) & ~self.board.black_pieces_bb:
-                print("WP ATTAX")
-                pprint_bb(self.white_pawn_attacks)
                 return False
             return True
 
@@ -298,6 +325,8 @@ class Position:
             if not (self.board.black_P_bb & current_square_bb):
                 return False
             if self.is_not_pawn_motion_or_attack(move):
+                return False
+            if (self.black_pawn_attacks & moving_to_square_bb) & ~self.board.white_pieces_bb:
                 return False
             return True
 
@@ -827,18 +856,24 @@ class Position:
             return [0, 0]
 
         if color_to_move == Color.WHITE:
-            kingside_blocked = (self.black_attacked_squares | (self.board.white_pieces_bb & ~self.board.white_K_bb)) & CastleRoute.WhiteKingside
-            queenside_blocked = (self.black_attacked_squares | (self.board.white_pieces_bb & ~self.board.white_K_bb)) & CastleRoute.WhiteQueenside
+            kingside_blocked = (self.black_attacked_squares | (
+                        self.board.white_pieces_bb & ~self.board.white_K_bb)) & CastleRoute.WhiteKingside
+            queenside_blocked = (self.black_attacked_squares | (
+                        self.board.white_pieces_bb & ~self.board.white_K_bb)) & CastleRoute.WhiteQueenside
             is_rook_on_h1 = self.board.white_R_bb & set_bit(make_uint64(), Square.H1)
             is_rook_on_a1 = self.board.white_R_bb & set_bit(make_uint64(), Square.A1)
-            return [not kingside_blocked.any() and is_rook_on_h1.any(), not queenside_blocked.any() and is_rook_on_a1.any()]
+            return [not kingside_blocked.any() and is_rook_on_h1.any(),
+                    not queenside_blocked.any() and is_rook_on_a1.any()]
 
         if color_to_move == Color.BLACK:
-            kingside_blocked = (self.white_attacked_squares | (self.board.black_pieces_bb & ~self.board.black_K_bb)) & CastleRoute.BlackKingside
-            queenside_blocked = (self.white_attacked_squares | (self.board.black_pieces_bb & ~self.board.black_K_bb)) & CastleRoute.BlackQueenside
+            kingside_blocked = (self.white_attacked_squares | (
+                        self.board.black_pieces_bb & ~self.board.black_K_bb)) & CastleRoute.BlackKingside
+            queenside_blocked = (self.white_attacked_squares | (
+                        self.board.black_pieces_bb & ~self.board.black_K_bb)) & CastleRoute.BlackQueenside
             is_rook_on_h8 = self.board.black_R_bb & set_bit(make_uint64(), Square.H8)
             is_rook_on_a8 = self.board.black_R_bb & set_bit(make_uint64(), Square.A8)
-            return [not kingside_blocked.any() and is_rook_on_h8.any(), not queenside_blocked.any() and is_rook_on_a8.any()]
+            return [not kingside_blocked.any() and is_rook_on_h8.any(),
+                    not queenside_blocked.any() and is_rook_on_a8.any()]
 
     def get_promotion_piece_type(self, legal_piece):
         if self.color_to_move == Color.WHITE:
@@ -849,4 +884,3 @@ class Position:
     def generate_fen(self):
         """ TODO: Generate FEN for the current state """
         return '-- TODO: generate FEN --'
-
