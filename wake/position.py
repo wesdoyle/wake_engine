@@ -29,6 +29,7 @@ class Position:
 
         self.castle_rights = {Color.WHITE: [1, 1], Color.BLACK: [1, 1]}
         self.en_passant_target = None  # target square
+        self.is_en_passant = False
         self.halfmove_clock = 0
 
         self.piece_map = {}
@@ -101,6 +102,13 @@ class Position:
 
         if move.is_capture:
             self.remove_opponent_piece_from_square(move.to_sq)
+
+        if self.is_en_passant:
+            if self.color_to_move == Color.WHITE:
+                self.remove_opponent_piece_from_square(move.to_sq - 8)
+            if self.color_to_move == Color.BLACK:
+                self.remove_opponent_piece_from_square(move.to_sq + 8)
+            # self.is_en_passant = False
 
         self.piece_map[move.piece].remove(move.from_sq)
         self.piece_map[move.piece].add(move.to_sq)
@@ -258,12 +266,24 @@ class Position:
             move.is_capture = True
 
         if piece in (Piece.wP, Piece.bP):
+
             is_legal_pawn_move = self.is_legal_pawn_move(move)
+
             if not is_legal_pawn_move:
                 return False
+
             if self.is_promotion(move):
                 move.is_promotion = True
                 return True
+
+            en_passant_target = self.try_get_en_passant_target(move)
+
+            if en_passant_target:
+                self.en_passant_target = int(en_passant_target)
+
+            if move.to_sq == self.en_passant_target:
+                self.is_en_passant = True
+
             return True
 
         if piece in (Piece.wB, Piece.bB):
@@ -285,6 +305,16 @@ class Position:
             if self.is_castling(move):
                 move.is_castling = True
             return True
+
+    def try_get_en_passant_target(self, move):
+        if move.piece not in {Piece.wP, Piece.bP}:
+            return None
+        if self.color_to_move == Color.WHITE:
+            if move.to_sq in Rank.x4 and move.from_sq in Rank.x2:
+                return move.to_sq - 8
+        if self.color_to_move == Color.BLACK:
+            if move.to_sq in Rank.x5 and move.from_sq in Rank.x7:
+                return move.to_sq + 8
 
     def is_capture(self, move):
         moving_to_square_bb = set_bit(make_uint64(), move.to_sq)
@@ -311,13 +341,19 @@ class Position:
         """
         current_square_bb = set_bit(make_uint64(), move.from_sq)
         moving_to_square_bb = set_bit(make_uint64(), move.to_sq)
+        en_passant_target = make_uint64()
+
+        if self.en_passant_target:
+            en_passant_target = set_bit(make_uint64(), self.en_passant_target)
 
         if move.piece == Piece.wP:
             if not (self.board.white_P_bb & current_square_bb):
                 return False
             if self.is_not_pawn_motion_or_attack(move):
                 return False
-            if (self.white_pawn_attacks & moving_to_square_bb) & ~self.board.black_pieces_bb:
+            if (self.white_pawn_attacks & moving_to_square_bb) & ~(self.board.black_pieces_bb | en_passant_target):
+                if moving_to_square_bb & en_passant_target:
+                    print("MOVING TO EP SQUARE")
                 return False
             return True
 
@@ -673,7 +709,7 @@ class Position:
         }
 
         # Handle en-passant targets
-        if self.en_passant_target:
+        if self.en_passant_target > 0:
             en_passant_bb = set_bit(bitboard, self.en_passant_target)
             en_passant_move = legal_attack_moves[color_to_move] & en_passant_bb
             if en_passant_move:
@@ -860,9 +896,9 @@ class Position:
 
         if color_to_move == Color.WHITE:
             kingside_blocked = (self.black_attacked_squares | (
-                        self.board.white_pieces_bb & ~self.board.white_K_bb)) & CastleRoute.WhiteKingside
+                    self.board.white_pieces_bb & ~self.board.white_K_bb)) & CastleRoute.WhiteKingside
             queenside_blocked = (self.black_attacked_squares | (
-                        self.board.white_pieces_bb & ~self.board.white_K_bb)) & CastleRoute.WhiteQueenside
+                    self.board.white_pieces_bb & ~self.board.white_K_bb)) & CastleRoute.WhiteQueenside
             is_rook_on_h1 = self.board.white_R_bb & set_bit(make_uint64(), Square.H1)
             is_rook_on_a1 = self.board.white_R_bb & set_bit(make_uint64(), Square.A1)
             return [not kingside_blocked.any() and is_rook_on_h1.any(),
@@ -870,9 +906,9 @@ class Position:
 
         if color_to_move == Color.BLACK:
             kingside_blocked = (self.white_attacked_squares | (
-                        self.board.black_pieces_bb & ~self.board.black_K_bb)) & CastleRoute.BlackKingside
+                    self.board.black_pieces_bb & ~self.board.black_K_bb)) & CastleRoute.BlackKingside
             queenside_blocked = (self.white_attacked_squares | (
-                        self.board.black_pieces_bb & ~self.board.black_K_bb)) & CastleRoute.BlackQueenside
+                    self.board.black_pieces_bb & ~self.board.black_K_bb)) & CastleRoute.BlackQueenside
             is_rook_on_h8 = self.board.black_R_bb & set_bit(make_uint64(), Square.H8)
             is_rook_on_a8 = self.board.black_R_bb & set_bit(make_uint64(), Square.A8)
             return [not kingside_blocked.any() and is_rook_on_h8.any(),
