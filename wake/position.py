@@ -12,6 +12,8 @@ from wake.move import Move
 # TODO: possible side-effects from mutating move all over
 #  the place in move legality checking
 
+# TODO: Use board object for setting attacked squares during update
+
 class Position:
     """
     Represents the internal state of a chess position
@@ -656,6 +658,9 @@ class Position:
         :return: True iff Move is legal
         """
         bitboard = make_uint64()
+
+        self.white_pawn_attacks = self.board.white_pawn_attacks
+        self.black_pawn_attacks = self.board.black_pawn_attacks
 
         legal_non_attack_moves = {
             Color.WHITE: self.board.white_pawn_motion_bbs[move_from_square],
