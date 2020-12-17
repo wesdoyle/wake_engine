@@ -247,14 +247,21 @@ class Position:
                 return False
             if self.is_promotion(move):
                 move.is_promotion = True
+                return True
+            return True
+
         if piece in (Piece.wB, Piece.bB):
             return self.is_legal_bishop_move(move)
+
         if piece in (Piece.wR, Piece.bR):
             return self.is_legal_rook_move()
+
         if piece in (Piece.wN, Piece.bN):
             return self.is_legal_knight_move(move)
+
         if piece in (Piece.wQ, Piece.bQ):
             return self.is_legal_queen_move(move)
+
         if piece in (Piece.wK, Piece.bK):
             is_legal_king_move = self.is_legal_king_move(move)
             if not is_legal_king_move:
@@ -282,6 +289,8 @@ class Position:
             if self.is_not_pawn_motion_or_attack(move):
                 return False
             if (self.white_pawn_attacks & moving_to_square_bb) & ~self.board.black_pieces_bb:
+                print("WP ATTAX")
+                pprint_bb(self.white_pawn_attacks)
                 return False
             return True
 
@@ -653,12 +662,12 @@ class Position:
             legal_moves &= ~own_piece_targets
 
         if color_to_move == Color.WHITE:
-            self.white_pawn_attacks |= legal_attack_moves[color_to_move]
-            self.white_pawn_moves |= legal_non_attack_moves[color_to_move]
+            self.white_pawn_attacks |= legal_attack_moves[Color.WHITE]
+            self.white_pawn_moves |= legal_non_attack_moves[Color.WHITE]
 
         if color_to_move == Color.BLACK:
-            self.black_pawn_attacks |= legal_attack_moves[color_to_move]
-            self.black_pawn_moves |= legal_non_attack_moves[color_to_move]
+            self.black_pawn_attacks |= legal_attack_moves[Color.BLACK]
+            self.black_pawn_moves |= legal_non_attack_moves[Color.BLACK]
 
     # -------------------------------------------------------------
     # LEGAL QUEEN MOVES
