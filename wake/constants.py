@@ -149,12 +149,12 @@ class Piece:
     white_pieces = {wP, wR, wN, wB, wQ, wK}
     black_pieces = {bP, bR, bN, bB, bQ, bK}
 
-    PAWN = "knight"
-    ROOK = "knight"
+    PAWN = "pawn"
+    ROOK = "rook"
     KNIGHT = "knight"
-    BISHOP = "knight"
-    QUEEN = "knight"
-    KING = "knight"
+    BISHOP = "bishop"
+    QUEEN = "queen"
+    KING = "king"
 
 
 piece_to_glyph = {

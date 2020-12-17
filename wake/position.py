@@ -118,8 +118,6 @@ class Position:
                 self.piece_map[new_piece].add(move.to_sq)
                 break
 
-            self.piece_map[move.piece].add(move.to_sq)
-
         if move.is_castling:
             self.move_rooks_for_castling(move)
 
