@@ -149,6 +149,13 @@ class Piece:
     white_pieces = {wP, wR, wN, wB, wQ, wK}
     black_pieces = {bP, bR, bN, bB, bQ, bK}
 
+    PAWN = "knight"
+    ROOK = "knight"
+    KNIGHT = "knight"
+    BISHOP = "knight"
+    QUEEN = "knight"
+    KING = "knight"
+
 
 piece_to_glyph = {
     Piece.wP: "♙",
@@ -164,3 +171,30 @@ piece_to_glyph = {
     Piece.wK: "♔",
     Piece.bK: "♚",
 }
+
+user_promotion_input = {
+    "queen": Piece.QUEEN,
+    "q": Piece.QUEEN,
+    "rook": Piece.ROOK,
+    "r": Piece.ROOK,
+    "knight": Piece.KNIGHT,
+    "k": Piece.KNIGHT,
+    "n": Piece.KNIGHT,
+    "bishop": Piece.BISHOP,
+    "b": Piece.BISHOP,
+}
+
+white_promotion_map = {
+    Piece.QUEEN: Piece.wQ,
+    Piece.ROOK: Piece.wR,
+    Piece.KNIGHT: Piece.wN,
+    Piece.BISHOP: Piece.wB,
+}
+
+black_promotion_map = {
+    Piece.QUEEN: Piece.bQ,
+    Piece.ROOK: Piece.bR,
+    Piece.KNIGHT: Piece.bN,
+    Piece.BISHOP: Piece.bB,
+}
+

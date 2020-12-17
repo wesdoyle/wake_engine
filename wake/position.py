@@ -4,7 +4,8 @@ from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, g
     get_southwest_ray, get_southeast_ray, get_north_ray, get_east_ray, get_south_ray, \
     get_west_ray, make_uint64, pprint_bb, generate_king_attack_bb_from_square
 from wake.board import Board
-from wake.constants import Color, Piece, Square, CastleRoute
+from wake.constants import Color, Piece, Square, CastleRoute, Rank, user_promotion_input, white_promotion_map, \
+    black_promotion_map
 from wake.move import Move
 
 
@@ -98,6 +99,21 @@ class Position:
 
         self.piece_map[move.piece].remove(move.from_sq)
         self.piece_map[move.piece].add(move.to_sq)
+
+        if move.is_promotion:
+            while True:
+                self.piece_map[move.piece].remove(move.to_sq)
+                promotion_piece = input("Choose promotion piece.")
+                promotion_piece = promotion_piece.lower()
+                legal_piece = user_promotion_input.get(promotion_piece)
+                if not legal_piece:
+                    print("Please choose a legal piece")
+                    continue
+                new_piece = self.get_promotion_piece_type(legal_piece)
+                self.piece_map[new_piece].add(move.to_sq)
+                break
+
+            self.piece_map[move.piece].add(move.to_sq)
 
         if move.is_castling:
             self.move_rooks_for_castling(move)
@@ -226,7 +242,11 @@ class Position:
         """
         piece = move.piece
         if piece in (Piece.wP, Piece.bP):
-            return self.is_legal_pawn_move(move)
+            is_legal_pawn_move = self.is_legal_pawn_move(move)
+            if not is_legal_pawn_move:
+                return False
+            if self.is_promotion(move):
+                move.is_promotion = True
         if piece in (Piece.wB, Piece.bB):
             return self.is_legal_bishop_move(move)
         if piece in (Piece.wR, Piece.bR):
@@ -429,6 +449,13 @@ class Position:
         if move.from_sq == Square.E8:
             if move.to_sq in {Square.G8, Square.E8}:
                 return True
+        return False
+
+    def is_promotion(self, pawn_move):
+        if self.color_to_move == Color.WHITE and pawn_move.to_sq in Rank.x8:
+            return True
+        if self.color_to_move == Color.BLACK and pawn_move.to_sq in Rank.x1:
+            return True
         return False
 
     # -------------------------------------------------------------
@@ -804,6 +831,13 @@ class Position:
             is_rook_on_a8 = self.board.black_R_bb & set_bit(make_uint64(), Square.A8)
             return [not kingside_blocked.any() and is_rook_on_h8.any(), not queenside_blocked.any() and is_rook_on_a8.any()]
 
+    def get_promotion_piece_type(self, legal_piece):
+        if self.color_to_move == Color.WHITE:
+            return white_promotion_map[legal_piece]
+        if self.color_to_move == Color.BLACK:
+            return black_promotion_map[legal_piece]
+
     def generate_fen(self):
         """ TODO: Generate FEN for the current state """
         return '-- TODO: generate FEN --'
+
