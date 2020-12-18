@@ -1048,7 +1048,7 @@ class Position:
             fen += "-"
 
         # Halfmove clock
-        fen += f" {str(self.halfmove_clock)} "
+        fen += f" {str(self.halfmove_clock)}"
 
         # Full-move Number
         fen += f" {str(self.halfmove // 2)}"
