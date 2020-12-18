@@ -930,5 +930,4 @@ class Position:
             return black_promotion_map[legal_piece]
 
     def generate_fen(self):
-        """ TODO: Generate FEN for the current state """
         return '-- TODO: generate FEN --'
