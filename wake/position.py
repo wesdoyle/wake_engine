@@ -29,7 +29,7 @@ class Position:
 
         self.castle_rights = {Color.WHITE: [1, 1], Color.BLACK: [1, 1]}
         self.en_passant_target = None  # target square
-        self.is_en_passant = False
+        self.is_en_passant_capture = False
         self.halfmove_clock = 0
 
         self.piece_map = {}
@@ -96,6 +96,9 @@ class Position:
     # -------------------------------------------------------------
 
     def make_move(self, move):
+        is_en_passant_set = self.en_passant_target is not None
+        self.is_en_passant_capture = False
+
         if not self.is_legal_move(move):
             print("Illegal move")
             return
@@ -103,12 +106,11 @@ class Position:
         if move.is_capture:
             self.remove_opponent_piece_from_square(move.to_sq)
 
-        if self.is_en_passant:
+        if self.is_en_passant_capture:
             if self.color_to_move == Color.WHITE:
                 self.remove_opponent_piece_from_square(move.to_sq - 8)
             if self.color_to_move == Color.BLACK:
                 self.remove_opponent_piece_from_square(move.to_sq + 8)
-            # self.is_en_passant = False
 
         self.piece_map[move.piece].remove(move.from_sq)
         self.piece_map[move.piece].add(move.to_sq)
@@ -143,6 +145,9 @@ class Position:
         self.update_attack_bitboards()
 
         self.color_to_move = not self.color_to_move
+
+        if is_en_passant_set:
+            self.en_passant_target = None
 
         return self.generate_fen()
 
@@ -282,7 +287,7 @@ class Position:
                 self.en_passant_target = int(en_passant_target)
 
             if move.to_sq == self.en_passant_target:
-                self.is_en_passant = True
+                self.is_en_passant_capture = True
 
             return True
 
@@ -351,10 +356,11 @@ class Position:
                 return False
             if self.is_not_pawn_motion_or_attack(move):
                 return False
-            if (self.white_pawn_attacks & moving_to_square_bb) & ~(self.board.black_pieces_bb | en_passant_target):
-                if moving_to_square_bb & en_passant_target:
-                    print("MOVING TO EP SQUARE")
-                return False
+
+            # If it's a pawn attack move, check that it intersects with black pieces or ep target
+            if move.from_sq == move.to_sq - 9 or move.from_sq == move.to_sq - 7:
+                if (self.white_pawn_attacks & moving_to_square_bb) & ~(self.board.black_pieces_bb | en_passant_target):
+                    return False
             return True
 
         if move.piece == Piece.bP:
@@ -362,8 +368,11 @@ class Position:
                 return False
             if self.is_not_pawn_motion_or_attack(move):
                 return False
-            if (self.black_pawn_attacks & moving_to_square_bb) & ~self.board.white_pieces_bb:
-                return False
+
+            # If it's a pawn attack move, check that it intersects with white pieces or ep target
+            if move.from_sq == move.to_sq + 9 or move.from_sq == move.to_sq + 7:
+                if (self.black_pawn_attacks & moving_to_square_bb) & ~(self.board.white_pieces_bb | en_passant_target):
+                    return False
             return True
 
     def is_legal_bishop_move(self, move: Move) -> bool:
@@ -709,7 +718,7 @@ class Position:
         }
 
         # Handle en-passant targets
-        if self.en_passant_target > 0:
+        if self.en_passant_target:
             en_passant_bb = set_bit(bitboard, self.en_passant_target)
             en_passant_move = legal_attack_moves[color_to_move] & en_passant_bb
             if en_passant_move:
