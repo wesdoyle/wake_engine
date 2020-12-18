@@ -5,7 +5,7 @@ from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, g
     get_west_ray, make_uint64, pprint_bb, generate_king_attack_bb_from_square
 from wake.board import Board
 from wake.constants import Color, Piece, Square, CastleRoute, Rank, user_promotion_input, white_promotion_map, \
-    black_promotion_map
+    black_promotion_map, square_map
 from wake.move import Move
 
 
@@ -27,10 +27,13 @@ class Position:
 
         self.color_to_move = Color.WHITE
 
+        # [kingside, queenside] castle rights
         self.castle_rights = {Color.WHITE: [1, 1], Color.BLACK: [1, 1]}
+
         self.en_passant_target = None  # target square
         self.is_en_passant_capture = False
         self.halfmove_clock = 0
+        self.halfmove = 2
 
         self.piece_map = {}
         self.set_initial_piece_locations()
@@ -103,7 +106,11 @@ class Position:
             print("Illegal move")
             return
 
+        if move.piece in {Piece.wP, Piece.bP}:
+            self.halfmove_clock = 0
+
         if move.is_capture:
+            self.halfmove_clock = 0
             self.remove_opponent_piece_from_square(move.to_sq)
 
         if self.is_en_passant_capture:
@@ -132,6 +139,7 @@ class Position:
             self.move_rooks_for_castling(move)
 
         self.halfmove_clock += 1
+        self.halfmove += 1
 
         castle_rights = self.castle_rights[self.color_to_move]
 
@@ -929,5 +937,113 @@ class Position:
         if self.color_to_move == Color.BLACK:
             return black_promotion_map[legal_piece]
 
-    def generate_fen(self):
-        return '-- TODO: generate FEN --'
+    def generate_fen(self) -> str:
+        black_pawn_bin = np.binary_repr(self.board.black_P_bb, 64)
+        black_rook_bin = np.binary_repr(self.board.black_R_bb, 64)
+        black_knight_bin = np.binary_repr(self.board.black_N_bb, 64)
+        black_bishop_bin = np.binary_repr(self.board.black_B_bb, 64)
+        black_queen_bin = np.binary_repr(self.board.black_Q_bb, 64)
+        black_king_bin = np.binary_repr(self.board.black_K_bb, 64)
+        white_pawn_bin = np.binary_repr(self.board.white_P_bb, 64)
+        white_rook_bin = np.binary_repr(self.board.white_R_bb, 64)
+        white_knight_bin = np.binary_repr(self.board.white_N_bb, 64)
+        white_bishop_bin = np.binary_repr(self.board.white_B_bb, 64)
+        white_queen_bin = np.binary_repr(self.board.white_Q_bb, 64)
+        white_king_bin = np.binary_repr(self.board.white_K_bb, 64)
+
+        black_pawn_squares = [i for i in range(len(black_pawn_bin)) if int(black_pawn_bin[i])]
+        black_rook_squares = [i for i in range(len(black_rook_bin)) if int(black_rook_bin[i])]
+        black_knight_squares = [i for i in range(len(black_knight_bin)) if int(black_knight_bin[i])]
+        black_bishop_squares = [i for i in range(len(black_bishop_bin)) if int(black_bishop_bin[i])]
+        black_queen_squares = [i for i in range(len(black_queen_bin)) if int(black_queen_bin[i])]
+        black_king_square = [i for i in range(len(black_king_bin)) if int(black_king_bin[i])]
+        white_pawn_squares = [i for i in range(len(white_pawn_bin)) if int(white_pawn_bin[i])]
+        white_rook_squares = [i for i in range(len(white_rook_bin)) if int(white_rook_bin[i])]
+        white_knight_squares = [i for i in range(len(white_knight_bin)) if int(white_knight_bin[i])]
+        white_bishop_squares = [i for i in range(len(white_bishop_bin)) if int(white_bishop_bin[i])]
+        white_queen_squares = [i for i in range(len(white_queen_bin)) if int(white_queen_bin[i])]
+        white_king_square = [i for i in range(len(white_king_bin)) if int(white_king_bin[i])]
+
+        fen_dict = {i: None for i in range(64)}
+
+        for s in black_pawn_squares:
+            fen_dict[s] = 'p'
+        for s in black_rook_squares:
+            fen_dict[s] = 'r'
+        for s in black_knight_squares:
+            fen_dict[s] = 'n'
+        for s in black_bishop_squares:
+            fen_dict[s] = 'b'
+        for s in black_queen_squares:
+            fen_dict[s] = 'q'
+        for s in black_king_square:
+            fen_dict[s] = 'k'
+        for s in white_pawn_squares:
+            fen_dict[s] = 'P'
+        for s in white_rook_squares:
+            fen_dict[s] = 'R'
+        for s in white_knight_squares:
+            fen_dict[s] = 'N'
+        for s in white_bishop_squares:
+            fen_dict[s] = 'B'
+        for s in white_queen_squares:
+            fen_dict[s] = 'Q'
+        for s in white_king_square:
+            fen_dict[s] = 'K'
+
+        fen = ''
+        empty = 0
+
+        for k, v in fen_dict.items():
+            if not k % 8 and not k == 0:
+                if empty:
+                    fen += str(empty)
+                    empty = 0
+                fen += '/'
+            if not v:
+                empty += 1
+                continue
+            if empty:
+                fen += str(empty)
+            fen += v
+
+        side_to_move_map = {
+            Color.WHITE: 'w',
+            Color.BLACK: 'b'
+        }
+
+        fen += f" {side_to_move_map[self.color_to_move]}"
+
+        w_castle_king = self.castle_rights[Color.WHITE][0] == True
+        w_castle_queen = self.castle_rights[Color.WHITE][1] == True
+        b_castle_king = self.castle_rights[Color.BLACK][0] == True
+        b_castle_queen = self.castle_rights[Color.BLACK][1] == True
+
+        fen += " "
+
+        if w_castle_king:
+            fen += "K"
+        if w_castle_queen:
+            fen += "Q"
+        if b_castle_king:
+            fen += "k"
+        if b_castle_queen:
+            fen += "q"
+
+        if not w_castle_king and not w_castle_queen and not b_castle_king and not b_castle_queen:
+            fen += "-"
+
+        fen += " "
+
+        if self.en_passant_target:
+            fen += str(square_map[self.en_passant_target])
+        else:
+            fen += "-"
+
+        # Halfmove clock
+        fen += f" {str(self.halfmove_clock)} "
+
+        # Full-move Number
+        fen += f" {str(self.halfmove // 2)}"
+
+        return fen
