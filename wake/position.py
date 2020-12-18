@@ -993,19 +993,26 @@ class Position:
 
         fen = ''
         empty = 0
+        row = ''
 
         for k, v in fen_dict.items():
             if not k % 8 and not k == 0:
                 if empty:
-                    fen += str(empty)
+                    row += str(empty)
                     empty = 0
-                fen += '/'
+                fen += row[::-1] + "/"
+                row = ''
+
             if not v:
                 empty += 1
                 continue
+
             if empty:
-                fen += str(empty)
-            fen += v
+                row += str(empty)
+                empty = 0
+
+            row += v
+        fen += row[::-1]
 
         side_to_move_map = {
             Color.WHITE: 'w',
