@@ -695,3 +695,4 @@ def kingside_bb(): return file_e_bb() | file_f_bb() | file_g_bb() | file_h_bb()
 
 
 def queenside_bb(): return file_a_bb() | file_b_bb() | file_c_bb() | file_d_bb()
+
