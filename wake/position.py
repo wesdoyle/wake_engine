@@ -12,7 +12,46 @@ from wake.move import Move
 # TODO: possible side-effects from mutating move all over
 #  the place in move legality checking
 
-# TODO: Use board object for setting attacked squares during update
+# position reached 3-times draw allowed
+
+# implement 50 move rule
+
+# Use existing code / de-dupe from board module
+
+# Unit tests
+
+# King in check / Checkmate code
+
+# Push FEN to the Game stack
+
+# Should we generate the move from the board?
+
+class PositionState:
+    def __init__(self, kwargs):
+        self.board = kwargs['board']
+        self.color_to_move = kwargs['color_to_move']
+        self.castle_rights = kwargs['castle_rights']
+        self.en_passant_target = kwargs['en_passant_target']
+        self.is_en_passant_capture = kwargs['is_en_passant_capture']
+        self.halfmove_clock = kwargs['halfmove_clock']
+        self.halfmove = kwargs['halfmove']
+        self.king_in_check = kwargs['king_in_check']
+        self.piece_map = kwargs['piece_map']
+        self.white_pawn_moves = kwargs['white_pawn_moves']
+        self.white_pawn_attacks = kwargs['white_pawn_attacks']
+        self.white_rook_attacks = kwargs['white_rook_attacks']
+        self.white_knight_attacks = kwargs['white_knight_attacks']
+        self.white_bishop_attacks = kwargs['white_bishop_attacks']
+        self.white_queen_attacks = kwargs['white_queen_attacks']
+        self.white_king_attacks = kwargs['white_king_attack']
+        self.black_pawn_moves = kwargs['black_pawn_moves']
+        self.black_pawn_attacks = kwargs['black_pawn_attacks']
+        self.black_rook_attacks = kwargs['black_rook_attacks']
+        self.black_knight_attacks = kwargs['black_knight_attacks']
+        self.black_bishop_attacks = kwargs['black_bishop_attacks']
+        self.black_queen_attacks = kwargs['black_queen_attacks']
+        self.black_king_attacks = kwargs['black_king_attacks']
+
 
 class Position:
     """
@@ -34,6 +73,9 @@ class Position:
         self.is_en_passant_capture = False
         self.halfmove_clock = 0
         self.halfmove = 2
+
+        # [white, black] boolean king is in check
+        self.king_in_check = [0, 0]
 
         self.piece_map = {}
         self.set_initial_piece_locations()
@@ -69,6 +111,10 @@ class Position:
         self.piece_map[Piece.bQ] = {59}
         self.piece_map[Piece.bK] = {60}
 
+    def reset_state_from_position(self, memento: PositionState) -> None:
+        # TODO: Set all of the attributes
+        pass
+
     @property
     def get_occupied_squares_by_color(self):
         return {
@@ -99,12 +145,14 @@ class Position:
     # -------------------------------------------------------------
 
     def make_move(self, move):
+
+        # if not self.any_legal_moves() and self.king_in_check[self.color_to_move]:
+        #     pass # CHECKMATE
+
+        original_position = PositionState(self.__dict__)
+
         is_en_passant_set = self.en_passant_target is not None
         self.is_en_passant_capture = False
-
-        if not self.is_legal_move(move):
-            print("Illegal move")
-            return
 
         if move.piece in {Piece.wP, Piece.bP}:
             self.halfmove_clock = 0
@@ -157,6 +205,15 @@ class Position:
         if is_en_passant_set:
             self.en_passant_target = None
 
+        self.evaluate_king_check()
+
+        if not self.is_legal_move(move) or self.king_in_check[self.color_to_move]:
+            print("Illegal move")
+            # Rewind the bitboards
+            self.reset_state_from_position(original_position)
+            return
+
+        # Commit the bitboards
         return self.generate_fen()
 
     def remove_opponent_piece_from_square(self, to_sq):
@@ -1054,3 +1111,18 @@ class Position:
         fen += f" {str(self.halfmove // 2)}"
 
         return fen
+
+    def evaluate_king_check(self):
+        """
+        Evaluates instance state for intersection of attacked squares and opposing king position.
+        Updates instance state `king_in_check` for the corresponding color
+        """
+        if self.black_attacked_squares & self.board.white_K_bb:
+            self.king_in_check[0] = 1
+        else:
+            self.king_in_check[0] = 0
+        if self.white_attacked_squares & self.board.black_K_bb:
+            self.king_in_check[1] = 1
+        else:
+            self.king_in_check[1] = 0
+
