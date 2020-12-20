@@ -154,12 +154,12 @@ class Position:
 
     def make_move(self, move):
 
-        # if not any_legal_moves() and self.king_in_check[self.color_to_move]:
-        #     pass # CHECKMATE
+        if self.king_in_check[self.color_to_move] and not self.any_legal_moves():
+            pass # CHECKMATE
 
         original_position = PositionState(copy.deepcopy(self.__dict__))
 
-        if not self.is_legal_move(move) or self.king_in_check[self.color_to_move]:
+        if not self.is_legal_move(move):
             print("Illegal move")
             return
 
