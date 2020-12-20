@@ -27,6 +27,10 @@ from wake.move import Move
 # Should we generate the move from the board?
 
 class PositionState:
+    """
+    Memento for Position
+    """
+
     def __init__(self, kwargs):
         self.board = kwargs['board']
         self.color_to_move = kwargs['color_to_move']
@@ -43,7 +47,7 @@ class PositionState:
         self.white_knight_attacks = kwargs['white_knight_attacks']
         self.white_bishop_attacks = kwargs['white_bishop_attacks']
         self.white_queen_attacks = kwargs['white_queen_attacks']
-        self.white_king_attacks = kwargs['white_king_attack']
+        self.white_king_attacks = kwargs['white_king_attacks']
         self.black_pawn_moves = kwargs['black_pawn_moves']
         self.black_pawn_attacks = kwargs['black_pawn_attacks']
         self.black_rook_attacks = kwargs['black_rook_attacks']
@@ -111,9 +115,10 @@ class Position:
         self.piece_map[Piece.bQ] = {59}
         self.piece_map[Piece.bK] = {60}
 
-    def reset_state_from_position(self, memento: PositionState) -> None:
-        # TODO: Set all of the attributes
-        pass
+    def reset_state_to(self, memento: PositionState) -> None:
+        print("Resetting Position State")
+        for k, v in memento.__dict__.items():
+            setattr(self, k, v)
 
     @property
     def get_occupied_squares_by_color(self):
@@ -151,11 +156,9 @@ class Position:
 
         original_position = PositionState(self.__dict__)
 
-        is_en_passant_set = self.en_passant_target is not None
-        self.is_en_passant_capture = False
-
-        if move.piece in {Piece.wP, Piece.bP}:
-            self.halfmove_clock = 0
+        if not self.is_legal_move(move) or self.king_in_check[self.color_to_move]:
+            print("Illegal move")
+            return
 
         if move.is_capture:
             self.halfmove_clock = 0
@@ -167,18 +170,30 @@ class Position:
             if self.color_to_move == Color.BLACK:
                 self.remove_opponent_piece_from_square(move.to_sq + 8)
 
+        is_en_passant_set = False
+
+        if self.en_passant_target is not None:
+            is_en_passant_set = True
+
+        else:
+            self.en_passant_target = None
+
+        self.is_en_passant_capture = False
+
+        if move.piece in {Piece.wP, Piece.bP}:
+            self.halfmove_clock = 0
         self.piece_map[move.piece].remove(move.from_sq)
         self.piece_map[move.piece].add(move.to_sq)
 
         if move.is_promotion:
             while True:
-                self.piece_map[move.piece].remove(move.to_sq)
                 promotion_piece = input("Choose promotion piece.")
                 promotion_piece = promotion_piece.lower()
                 legal_piece = user_promotion_input.get(promotion_piece)
                 if not legal_piece:
                     print("Please choose a legal piece")
                     continue
+                self.piece_map[move.piece].remove(move.to_sq)
                 new_piece = self.get_promotion_piece_type(legal_piece)
                 self.piece_map[new_piece].add(move.to_sq)
                 break
@@ -200,18 +215,12 @@ class Position:
         # Update the possible moves
         self.update_attack_bitboards()
 
-        self.color_to_move = not self.color_to_move
-
-        if is_en_passant_set:
-            self.en_passant_target = None
-
         self.evaluate_king_check()
 
-        if not self.is_legal_move(move) or self.king_in_check[self.color_to_move]:
-            print("Illegal move")
-            # Rewind the bitboards
-            self.reset_state_from_position(original_position)
-            return
+        if self.king_in_check[self.color_to_move]:
+            self.reset_state_to(original_position)
+
+        self.color_to_move = not self.color_to_move
 
         # Commit the bitboards
         return self.generate_fen()
@@ -336,7 +345,6 @@ class Position:
             move.is_capture = True
 
         if piece in (Piece.wP, Piece.bP):
-
             is_legal_pawn_move = self.is_legal_pawn_move(move)
 
             if not is_legal_pawn_move:
@@ -425,6 +433,7 @@ class Position:
             # If it's a pawn attack move, check that it intersects with black pieces or ep target
             if move.from_sq == move.to_sq - 9 or move.from_sq == move.to_sq - 7:
                 if (self.white_pawn_attacks & moving_to_square_bb) & ~(self.board.black_pieces_bb | en_passant_target):
+                    pprint_bb(en_passant_target)
                     return False
             return True
 
@@ -563,7 +572,6 @@ class Position:
         moving_to_square_bb = set_bit(make_uint64(), to_sq)
         if self.color_to_move == Color.WHITE:
             if not (self.white_king_attacks & moving_to_square_bb):
-                print("WHITE KING ATTACKS")
                 pprint_bb(self.white_king_attacks)
                 return True
         if self.color_to_move == Color.BLACK:
@@ -1125,4 +1133,3 @@ class Position:
             self.king_in_check[1] = 1
         else:
             self.king_in_check[1] = 0
-
