@@ -35,6 +35,7 @@ class PositionState:
         self.board = kwargs['board']
         self.color_to_move = kwargs['color_to_move']
         self.castle_rights = kwargs['castle_rights']
+        self.en_passant_side = kwargs['en_passant_side']
         self.en_passant_target = kwargs['en_passant_target']
         self.is_en_passant_capture = kwargs['is_en_passant_capture']
         self.halfmove_clock = kwargs['halfmove_clock']
@@ -74,6 +75,7 @@ class Position:
         self.castle_rights = {Color.WHITE: [1, 1], Color.BLACK: [1, 1]}
 
         self.en_passant_target = None  # target square
+        self.en_passant_side = Color.WHITE
         self.is_en_passant_capture = False
         self.halfmove_clock = 0
         self.halfmove = 2
@@ -170,14 +172,6 @@ class Position:
             if self.color_to_move == Color.BLACK:
                 self.remove_opponent_piece_from_square(move.to_sq + 8)
 
-        is_en_passant_set = False
-
-        if self.en_passant_target is not None:
-            is_en_passant_set = True
-
-        else:
-            self.en_passant_target = None
-
         self.is_en_passant_capture = False
 
         if move.piece in {Piece.wP, Piece.bP}:
@@ -208,6 +202,9 @@ class Position:
 
         if castle_rights[0] or castle_rights[1]:
             self.adjust_castling_rights(move)
+
+        if self.en_passant_side != self.color_to_move:
+            self.en_passant_target = None
 
         # Move the pieces
         self.board.update_position_bitboards(self.piece_map)
@@ -357,6 +354,7 @@ class Position:
             en_passant_target = self.try_get_en_passant_target(move)
 
             if en_passant_target:
+                self.en_passant_side = self.color_to_move
                 self.en_passant_target = int(en_passant_target)
 
             if move.to_sq == self.en_passant_target:
