@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 
 from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
@@ -118,7 +120,6 @@ class Position:
         self.piece_map[Piece.bK] = {60}
 
     def reset_state_to(self, memento: PositionState) -> None:
-        print("Resetting Position State")
         for k, v in memento.__dict__.items():
             setattr(self, k, v)
 
@@ -153,10 +154,10 @@ class Position:
 
     def make_move(self, move):
 
-        # if not self.any_legal_moves() and self.king_in_check[self.color_to_move]:
+        # if not any_legal_moves() and self.king_in_check[self.color_to_move]:
         #     pass # CHECKMATE
 
-        original_position = PositionState(self.__dict__)
+        original_position = PositionState(copy.deepcopy(self.__dict__))
 
         if not self.is_legal_move(move) or self.king_in_check[self.color_to_move]:
             print("Illegal move")
@@ -216,6 +217,8 @@ class Position:
 
         if self.king_in_check[self.color_to_move]:
             self.reset_state_to(original_position)
+            print("Illegal move: own king in check")
+            return self.generate_fen()
 
         self.color_to_move = not self.color_to_move
 
