@@ -11,3 +11,14 @@ class Move:
         self.is_en_passant = False
         self.is_promotion = False
         self.is_castling = False
+
+
+class MoveResult:
+    """
+    Represents the positional outcome of a move
+    """
+    def __init__(self):
+        self.is_checkmate = False
+        self.is_king_in_check = False
+        self.is_stalemate = False
+        self.is_draw_claim_allowed = False

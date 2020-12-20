@@ -1,42 +1,39 @@
+from wake.constants import Color
 from wake.position import Position
-
-"""
-TODO:
-    - Game as stack of FENs 
-    - each move pushes an FEN onto the stack
-"""
 
 
 class Game:
+
     def __init__(self):
-        self.history = []  # Stack of Position objects
-        initial_position = Position(None)
-        self.history.append(initial_position)
-        self.half_move_number = 0
+        self.history = []  # Stack of FENs (TODO: consider stacking position states)
+        self.position = Position()
+        self.is_over = False
+        self.score = [0, 0]
 
-    def add_position(self, position) -> bool:
-        self.history.append(position)
-        self.half_move_number += 1
-        return True
+        self.color_to_move = {
+            Color.WHITE: "White",
+            Color.BLACK: "Black",
+        }
 
-    def get_current_position(self) -> Position:
-        try:
-            return self.history[-1]
-        except IndexError:
-            print("You've reached the initial position.")
+    def run(self):
+        while not self.is_over:
+            move = input(f"{self.color_to_move[self.position.color_to_move]} to move:")
+            if not self.try_parse_move(move):
+                print("Invalid move format")
+                continue
+            move_result = self.position.make_move(move)
 
-    def get_last_position(self) -> Position:
-        try:
-            return self.history[-2]
-        except IndexError:
-            print("You've reached the initial position.")
+            if move_result.is_checkmate:
+                print("Checkmate")
+                self.score[self.position.color_to_move] = 1
+                self.is_over = True
 
-    def get_move(self, move_number):
-        """ TODO: get move by move_number """
+            if move_result.is_stalemate:
+                print("Stalemate")
+                self.score = [0.5, 0.5]
+                self.is_over = True
+
+        print(self.score)
+
+    def try_parse_move(self, move):
         pass
-
-    def take_back_move(self) -> Position:
-        try:
-            return self.history.pop()
-        except IndexError:
-            print("You've reached the initial position.")

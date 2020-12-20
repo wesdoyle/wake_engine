@@ -8,7 +8,7 @@ from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, g
 from wake.board import Board
 from wake.constants import Color, Piece, Square, CastleRoute, Rank, user_promotion_input, white_promotion_map, \
     black_promotion_map, square_map
-from wake.move import Move
+from wake.move import Move, MoveResult
 
 
 # TODO: possible side-effects from mutating move all over
@@ -65,7 +65,7 @@ class Position:
     Represents the internal state of a chess position
     """
 
-    def __init__(self, board=None):
+    def __init__(self, board=None, position_state=None):
         if board is None:
             self.board = Board()
         else:
@@ -152,10 +152,7 @@ class Position:
     # MAKE MOVE
     # -------------------------------------------------------------
 
-    def make_move(self, move):
-
-        if self.king_in_check[self.color_to_move] and not self.any_legal_moves():
-            pass # CHECKMATE
+    def make_move(self, move) -> MoveResult:
 
         original_position = PositionState(copy.deepcopy(self.__dict__))
 
@@ -222,8 +219,95 @@ class Position:
 
         self.color_to_move = not self.color_to_move
 
+        if self.king_in_check[(not self.color_to_move)] and not self.any_legal_moves(not self.color_to_move):
+            print("Checkmate")
+            return self.generate_fen()
+
         # Commit the bitboards
         return self.generate_fen()
+
+    def any_legal_moves(self, color_to_move):
+        has_legal_move = False
+        while not has_legal_move:
+            if self.has_king_move(color_to_move):
+                has_legal_move = True
+            if self.has_rook_move(color_to_move):
+                has_legal_move = True
+            if self.has_queen_move(color_to_move):
+                has_legal_move = True
+            if self.has_knight_move(color_to_move):
+                has_legal_move = True
+            if self.has_bishop_move(color_to_move):
+                has_legal_move = True
+            if self.has_pawn_move(color_to_move):
+                has_legal_move = True
+        return has_legal_move
+
+    def has_king_move(self, color_to_move):
+        king_attacks = {
+            Color.WHITE: self.white_king_attacks,
+            Color.BLACK: self.black_king_attacks
+        }
+        # if no attacks, return False
+        if not king_attacks[color_to_move].any():
+            return False
+        # TODO if has attacks, try every legal move
+        return True
+
+    def has_rook_move(self, color_to_move):
+        rook_attacks = {
+            Color.WHITE: self.white_rook_attacks,
+            Color.BLACK: self.black_rook_attacks
+        }
+        # if no attacks, return False
+        if not rook_attacks[color_to_move].any():
+            return False
+        # TODO if has attacks, try every legal move
+        return True
+
+    def has_queen_move(self, color_to_move):
+        queen_attacks = {
+            Color.WHITE: self.white_queen_attacks,
+            Color.BLACK: self.black_queen_attacks
+        }
+        # if no attacks, return False
+        if not queen_attacks[color_to_move].any():
+            return False
+        # TODO if has attacks, try every legal move
+        return True
+
+    def has_knight_move(self, color_to_move):
+        knight_attacks = {
+            Color.WHITE: self.white_knight_attacks,
+            Color.BLACK: self.black_knight_attacks
+        }
+        # if no attacks, return False
+        if not knight_attacks[color_to_move].any():
+            return False
+        # TODO if has attacks, try every legal move
+        return True
+
+    def has_bishop_move(self, color_to_move):
+        bishop_attacks = {
+            Color.WHITE: self.white_bishop_attacks,
+            Color.BLACK: self.black_bishop_attacks
+        }
+        # if no attacks, return False
+        if not bishop_attacks[color_to_move].any():
+            return False
+        # TODO if has attacks, try every legal move
+        return True
+
+    def has_pawn_move(self, color_to_move):
+        pawn_attacks = {
+            Color.WHITE: self.white_pawn_attacks,
+            Color.BLACK: self.black_pawn_attacks
+        }
+        # if no attacks, return False
+        if not pawn_attacks[color_to_move].any():
+            return False
+        # TODO if has attacks, try every legal move
+        return True
 
     def remove_opponent_piece_from_square(self, to_sq):
         # TODO: Inefficient
