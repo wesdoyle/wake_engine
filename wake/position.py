@@ -4,7 +4,7 @@ import numpy as np
 
 from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, get_northeast_ray, bitscan_reverse, \
     get_southwest_ray, get_southeast_ray, get_north_ray, get_east_ray, get_south_ray, \
-    get_west_ray, make_uint64, pprint_bb, generate_king_attack_bb_from_square, get_squares_from_bitboard
+    get_west_ray, make_uint64, generate_king_attack_bb_from_square, get_squares_from_bitboard
 from wake.board import Board
 from wake.constants import Color, Piece, Square, CastleRoute, Rank, user_promotion_input, white_promotion_map, \
     black_promotion_map
@@ -231,6 +231,7 @@ class Position:
         """
         Returns True if there are any legal moves
         """
+
         if self.has_king_move(color_to_move):
             return True
         # if self.has_rook_move(color_to_move):
@@ -269,7 +270,7 @@ class Position:
 
         for to_square in king_squares:
             move = Move(king_piece, (king_from_square, to_square))
-            move = evaluate_move(move, self)
+            move = evaluate_move(move, copy.deepcopy(self))
             if not move.is_illegal_move:
                 return True
         return False
@@ -294,7 +295,6 @@ class Position:
             for to_square in rook_attack_squares:
                 move = Move(rook_piece, (rook_from_square, to_square))
                 move = evaluate_move(move, self)
-                print("evaluated move!")
                 if not move.is_illegal_move:
                     return True
         return False
@@ -1210,7 +1210,6 @@ def evaluate_move(move, position: Position) -> MoveResult:
     """
 
     if not position.is_legal_move(move):
-        print("Not even close")
         return position.make_illegal_move_result("Illegal move")
 
     if move.is_capture:
@@ -1256,7 +1255,4 @@ def evaluate_move(move, position: Position) -> MoveResult:
 
     other_player = not position.color_to_move
 
-    if position.king_in_check[other_player] and not position.any_legal_moves(other_player):
-        print("Checkmate")
-        return position.make_checkmate_result()
     return position.make_move_result()
