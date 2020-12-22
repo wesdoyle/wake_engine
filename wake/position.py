@@ -231,27 +231,27 @@ class Position:
         """
         Returns True if there are any legal moves
         """
-        has_legal_move = False
-        while not has_legal_move:
-            if self.has_king_move(from_square, color_to_move):
-                has_legal_move = True
-            if self.has_rook_move(from_square, color_to_move):
-                has_legal_move = True
-            if self.has_queen_move(from_square, color_to_move):
-                has_legal_move = True
-            if self.has_knight_move(from_square, color_to_move):
-                has_legal_move = True
-            if self.has_bishop_move(from_square, color_to_move):
-                has_legal_move = True
-            if self.has_pawn_move(from_square, color_to_move):
-                has_legal_move = True
-        return has_legal_move
+        if self.has_king_move(color_to_move):
+            return True
+        if self.has_rook_move(color_to_move):
+            return True
+        if self.has_queen_move(color_to_move):
+            return True
+        if self.has_knight_move(color_to_move):
+            return True
+        if self.has_bishop_move(color_to_move):
+            return True
+        if self.has_pawn_move(color_to_move):
+            return True
+        return False
 
-    def has_king_move(self, from_square, color_to_move):
+    def has_king_move(self, color_to_move):
         """
         Returns True if there is a legal king move for the given color from the given square
         in the current Position instance
         """
+        print("checking king moves ###")
+
         king_color_map = {
             Color.WHITE: (self.white_king_attacks, Piece.wK),
             Color.BLACK: (self.black_king_attacks, Piece.bK)
@@ -262,11 +262,16 @@ class Position:
 
         # if no attacks, return False
         if not king_attacks.any():
+            print("There are no king attacks")
             return False
+
+        king_from_square = self.piece_map[Piece.bK].pop()
+
         king_squares = get_squares_from_bitboard(king_attacks)
         for to_square in king_squares:
-            move = Move(king_piece, (from_square, to_square))
+            move = Move(king_piece, (king_from_square, to_square))
             move = evaluate_move(move, self)
+            print("King Move evaluation: ", move.__dict__)
             if not move.is_illegal_move:
                 return True
         return False
@@ -669,8 +674,12 @@ class Position:
             return True
         if move.piece == Piece.bK:
             if not (self.board.black_K_bb & current_square_bb):
+                print("Not the right square (black)")
+                pprint_bb(self.board.black_K_bb)
+                pprint_bb(current_square_bb)
                 return False
             if self.is_not_king_attack(move.to_sq):
+                print("Not a king attack (black)")
                 return False
             return True
 
@@ -1186,6 +1195,7 @@ def evaluate_move(move, position: Position) -> MoveResult:
     Evaluates if a move is fully legal
     """
     if not position.is_legal_move(move):
+        print("Not even close")
         return position.make_illegal_move_result("Illegal move")
 
     if move.is_capture:
