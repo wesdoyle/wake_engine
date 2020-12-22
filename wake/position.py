@@ -228,6 +228,9 @@ class Position:
             break
 
     def any_legal_moves(self, from_square, color_to_move):
+        """
+        Returns True if there are any legal moves
+        """
         has_legal_move = False
         while not has_legal_move:
             if self.has_king_move(from_square, color_to_move):
@@ -245,6 +248,10 @@ class Position:
         return has_legal_move
 
     def has_king_move(self, from_square, color_to_move):
+        """
+        Returns True if there is a legal king move for the given color from the given square
+        in the current Position instance
+        """
         king_color_map = {
             Color.WHITE: (self.white_king_attacks, Piece.wK),
             Color.BLACK: (self.black_king_attacks, Piece.bK)
@@ -257,11 +264,8 @@ class Position:
         if not king_attacks.any():
             return False
         king_squares = get_squares_from_bitboard(king_attacks)
-        for square in king_squares:
-            move = Move()
-            move.from_sq = from_square
-            move.to_sq = square
-            move.piece = king_piece
+        for to_square in king_squares:
+            move = Move(king_piece, (from_square, to_square))
             move = evaluate_move(move, self)
             if not move.is_illegal_move:
                 return True
