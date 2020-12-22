@@ -250,8 +250,6 @@ class Position:
         Returns True if there is a legal king move for the given color from the given square
         in the current Position instance
         """
-        print("checking king moves ###")
-
         king_color_map = {
             Color.WHITE: (self.white_king_attacks, Piece.wK),
             Color.BLACK: (self.black_king_attacks, Piece.bK)
@@ -262,24 +260,23 @@ class Position:
 
         # if no attacks, return False
         if not king_attacks.any():
-            print("There are no king attacks")
             return False
 
-        king_from_square = self.piece_map[Piece.bK].pop()
+        king_piece_map_copy = self.piece_map[king_piece].copy()
+        king_from_square = king_piece_map_copy.pop()
 
         king_squares = get_squares_from_bitboard(king_attacks)
         for to_square in king_squares:
             move = Move(king_piece, (king_from_square, to_square))
             move = evaluate_move(move, self)
-            print("King Move evaluation: ", move.__dict__)
             if not move.is_illegal_move:
                 return True
         return False
 
-    def has_rook_move(self, from_square, color_to_move):
+    def has_rook_move(self, color_to_move):
         rook_color_map = {
-            Color.WHITE: (self.white_rook_attacks, Piece.wK),
-            Color.BLACK: (self.black_rook_attacks, Piece.bK)
+            Color.WHITE: (self.white_rook_attacks, Piece.wR),
+            Color.BLACK: (self.black_rook_attacks, Piece.bR)
         }
 
         rook_attacks = rook_color_map[color_to_move][0]
@@ -288,18 +285,22 @@ class Position:
         # if no attacks, return False
         if not rook_attacks.any():
             return False
-        rook_squares = get_squares_from_bitboard(rook_attacks)
-        for to_square in rook_squares:
-            move = Move(rook_piece, (from_square, to_square))
-            move = evaluate_move(move, self)
-            if not move.is_illegal_move:
-                return True
+
+        current_rook_locations = self.piece_map[rook_piece]
+        rook_attack_squares = get_squares_from_bitboard(rook_attacks)
+
+        for rook_from_square in current_rook_locations:
+            for to_square in rook_attack_squares:
+                move = Move(rook_piece, (rook_from_square, to_square))
+                move = evaluate_move(move, self)
+                if not move.is_illegal_move:
+                    return True
         return False
 
-    def has_queen_move(self, from_square, color_to_move):
+    def has_queen_move(self, color_to_move):
         queen_color_map = {
-            Color.WHITE: (self.white_queen_attacks, Piece.wK),
-            Color.BLACK: (self.black_queen_attacks, Piece.bK)
+            Color.WHITE: (self.white_queen_attacks, Piece.wQ),
+            Color.BLACK: (self.black_queen_attacks, Piece.bQ)
         }
 
         queen_attacks = queen_color_map[color_to_move][0]
@@ -308,12 +309,16 @@ class Position:
         # if no attacks, return False
         if not queen_attacks.any():
             return False
+
+        current_queen_locations = self.piece_map[queen_piece]
         queen_squares = get_squares_from_bitboard(queen_attacks)
-        for to_square in queen_squares:
-            move = Move(queen_piece, (from_square, to_square))
-            move = evaluate_move(move, self)
-            if not move.is_illegal_move:
-                return True
+
+        for queen_from_square in current_queen_locations:
+            for to_square in queen_squares:
+                move = Move(queen_piece, (queen_from_square, to_square))
+                move = evaluate_move(move, self)
+                if not move.is_illegal_move:
+                    return True
         return False
 
     def has_knight_move(self, from_square, color_to_move):
@@ -328,12 +333,16 @@ class Position:
         # if no attacks, return False
         if not knight_attacks.any():
             return False
+
+        current_knight_locations = self.piece_map[knight_piece]
         knight_squares = get_squares_from_bitboard(knight_attacks)
-        for to_square in knight_squares:
-            move = Move(knight_piece, (from_square, to_square))
-            move = evaluate_move(move, self)
-            if not move.is_illegal_move:
-                return True
+
+        for knight_from_square in current_knight_locations:
+            for to_square in knight_squares:
+                move = Move(knight_piece, (knight_from_square, to_square))
+                move = evaluate_move(move, self)
+                if not move.is_illegal_move:
+                    return True
         return False
 
     def has_bishop_move(self, from_square, color_to_move):
@@ -348,12 +357,16 @@ class Position:
         # if no attacks, return False
         if not bishop_attacks.any():
             return False
+
+        current_bishop_locations = self.piece_map[bishop_piece]
         bishop_squares = get_squares_from_bitboard(bishop_attacks)
-        for to_square in bishop_squares:
-            move = Move(bishop_piece, (from_square, to_square))
-            move = evaluate_move(move, self)
-            if not move.is_illegal_move:
-                return True
+
+        for bishop_from_square in current_bishop_locations:
+            for to_square in bishop_squares:
+                move = Move(bishop_piece, (bishop_from_square, to_square))
+                move = evaluate_move(move, self)
+                if not move.is_illegal_move:
+                    return True
         return False
 
     def has_pawn_move(self, from_square, color_to_move):
@@ -362,18 +375,22 @@ class Position:
             Color.BLACK: (self.black_pawn_attacks & self.black_pawn_moves, Piece.bK)
         }
 
-        pawn_attacks = pawn_color_map[color_to_move][0]
+        all_pawn_moves = pawn_color_map[color_to_move][0]
         pawn_piece = pawn_color_map[color_to_move][1]
 
         # if no attacks, return False
-        if not pawn_attacks.any():
+        if not all_pawn_moves.any():
             return False
-        pawn_squares = get_squares_from_bitboard(pawn_attacks)
-        for to_square in pawn_squares:
-            move = Move(pawn_piece, (from_square, to_square))
-            move = evaluate_move(move, self)
-            if not move.is_illegal_move:
-                return True
+
+        current_pawn_locations = self.piece_map[pawn_piece]
+        pawn_squares = get_squares_from_bitboard(all_pawn_moves)
+
+        for pawn_from_square in current_pawn_locations:
+            for to_square in pawn_squares:
+                move = Move(pawn_piece, (pawn_from_square, to_square))
+                move = evaluate_move(move, self)
+                if not move.is_illegal_move:
+                    return True
         return False
 
     def remove_opponent_piece_from_square(self, to_sq):
