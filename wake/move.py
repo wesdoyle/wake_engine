@@ -22,3 +22,5 @@ class MoveResult:
         self.is_king_in_check = False
         self.is_stalemate = False
         self.is_draw_claim_allowed = False
+        self.is_illegal_move = False
+        self.fen = ''

@@ -215,16 +215,16 @@ class Position:
         if self.king_in_check[self.color_to_move]:
             self.reset_state_to(original_position)
             print("Illegal move: own king in check")
-            return self.generate_fen()
+            return self.make_illegal_move_result()
 
         self.color_to_move = not self.color_to_move
 
         if self.king_in_check[(not self.color_to_move)] and not self.any_legal_moves(not self.color_to_move):
             print("Checkmate")
-            return self.generate_fen()
+            return self.make_checkmate_result()
 
         # Commit the bitboards
-        return self.generate_fen()
+        return self.make_move_result()
 
     def any_legal_moves(self, color_to_move):
         has_legal_move = False
@@ -1218,3 +1218,20 @@ class Position:
             self.king_in_check[1] = 1
         else:
             self.king_in_check[1] = 0
+
+    def make_move_result(self) -> MoveResult:
+        move_result = MoveResult()
+        move_result.fen = self.generate_fen()
+        return move_result
+
+    def make_illegal_move_result(self) -> MoveResult:
+        move_result = MoveResult()
+        move_result.is_illegal_move = True
+        move_result.fen = self.generate_fen()
+        return move_result
+
+    def make_checkmate_result(self) -> MoveResult:
+        move_result = MoveResult()
+        move_result.is_checkmate = True
+        move_result.fen = self.generate_fen()
+        return move_result
