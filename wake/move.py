@@ -1,3 +1,6 @@
+from wake.constants import Piece
+
+
 class Move:
     """
     Represents the motion of a piece from an origin square to a target square
@@ -11,6 +14,12 @@ class Move:
         self.is_en_passant = False
         self.is_promotion = False
         self.is_castling = False
+
+    @property
+    def color(self):
+        if self.piece in Piece.white_pieces:
+            return 0
+        return 1
 
 
 class MoveResult:

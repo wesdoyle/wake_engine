@@ -37,7 +37,7 @@ def get_binary_string(bitboard: np.uint64, board_squares: int = 64) -> str:
 def get_squares_from_bitboard(bitboard: np.uint64) -> list:
     binary_string = get_binary_string(bitboard)
     squares = []
-    for i, bit in enumerate(binary_string):
+    for i, bit in enumerate(reversed(binary_string)):
         if int(bit):
             squares.append(i)
     return squares
