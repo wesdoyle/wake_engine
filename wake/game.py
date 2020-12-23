@@ -1,4 +1,4 @@
-from wake.constants import Color
+from wake.constants import Color, Piece
 from wake.position import Position
 
 
@@ -18,6 +18,7 @@ class Game:
     def run(self):
         while not self.is_over:
             move = input(f"{self.color_to_move[self.position.color_to_move]} to move:")
+
             if not self.try_parse_move(move):
                 print("Invalid move format")
                 continue
@@ -36,4 +37,23 @@ class Game:
         print(self.score)
 
     def try_parse_move(self, move):
-        pass
+        "p e2 e4"
+        if move.lower().strip() not in console_piece_notation_map:
+            return False
+
+
+console_piece_notation_map = {
+    "wp": Piece.wP,
+    "wb": Piece.wB,
+    "wn": Piece.wN,
+    "wk": Piece.wK,
+    "wr": Piece.wR,
+    "wq": Piece.wQ,
+
+    "bp": Piece.bP,
+    "bb": Piece.bB,
+    "bn": Piece.bN,
+    "bk": Piece.bK,
+    "br": Piece.bR,
+    "bq": Piece.bQ,
+}

@@ -12,22 +12,15 @@ from wake.fen import generate_fen
 from wake.move import Move, MoveResult
 
 
-# TODO: possible side-effects from mutating move all over
-#  the place in move legality checking
-
-# position reached 3-times draw allowed
-
-# implement 50 move rule
-
-# Use existing code / de-dupe from board module
-
+# 3-fold repetition
+# 50-move rule
+# De-dupe from board module
+# De-dupe evaluate_move function
 # Unit tests
-
-# King in check / Checkmate code
-
 # Push FEN to the Game stack
-
 # Should we generate the move from the board?
+# Stalemate
+# No checkmating pieces draw - KNK, KBK
 
 class PositionState:
     """
@@ -126,7 +119,20 @@ class Position:
             setattr(self, k, v)
 
     @property
-    def sum_material(self) -> dict:
+    def current_evaluation(self) -> float:
+        """
+        Returns the evaluation of the position instance
+        """
+        material_balance = self.material_sum
+        white_material = material_balance[Color.WHITE]
+        black_material = material_balance[Color.BLACK]
+        return white_material - black_material
+
+    @property
+    def material_sum(self) -> dict:
+        """
+        Returns a dictionary of material value for white and black
+        """
         material_balance = {
             Color.WHITE: 0,
             Color.BLACK: 0
@@ -1270,7 +1276,5 @@ def evaluate_move(move, position: Position) -> MoveResult:
 
     if position.king_in_check[position.color_to_move]:
         return position.make_illegal_move_result("own king in check")
-
-    other_player = not position.color_to_move
 
     return position.make_move_result()

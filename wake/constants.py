@@ -212,6 +212,7 @@ class Color:
     BLACK = 1
 
 
+
 class Piece:
     EMPTY = 0
 
@@ -257,7 +258,7 @@ piece_to_glyph = {
 
 piece_to_value = {
     Piece.wP: 1,
-    Piece.bP: ︎1,
+    Piece.bP: 1,
     Piece.wR: 5,
     Piece.bR: 5,
     Piece.wN: 3,
@@ -295,3 +296,6 @@ black_promotion_map = {
     Piece.KNIGHT: Piece.bN,
     Piece.BISHOP: Piece.bB,
 }
+
+UCI_INPUT_REGEX = r'(?i)^([a-h]{1}[1-8]{1}){2}(?<=[1-9])$|^([a-h]{1}[1-8]{1}){2}(?<=[8])([qnrb])$'
+
