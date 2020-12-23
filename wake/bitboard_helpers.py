@@ -34,6 +34,15 @@ def get_binary_string(bitboard: np.uint64, board_squares: int = 64) -> str:
     return format(bitboard, 'b').zfill(board_squares)
 
 
+def get_squares_from_bitboard(bitboard: np.uint64) -> list:
+    binary_string = get_binary_string(bitboard)
+    squares = []
+    for i, bit in enumerate(reversed(binary_string)):
+        if int(bit):
+            squares.append(i)
+    return squares
+
+
 # -------------------------------------------------------------
 # BIT QUERYING
 # -------------------------------------------------------------
@@ -413,8 +422,8 @@ def generate_queen_attack_bb_from_square(from_square: int) -> np.uint64:
     :return: np.uint64 bitboard representation of queen attacks on an otherwise empty board
     """
     return generate_diag_attack_bb_from_square(from_square) \
-        | generate_file_attack_bb_from_square(from_square) \
-        | generate_rank_attack_bb_from_square(from_square)
+           | generate_file_attack_bb_from_square(from_square) \
+           | generate_rank_attack_bb_from_square(from_square)
 
 
 # -------------------------------------------------------------
@@ -695,4 +704,3 @@ def kingside_bb(): return file_e_bb() | file_f_bb() | file_g_bb() | file_h_bb()
 
 
 def queenside_bb(): return file_a_bb() | file_b_bb() | file_c_bb() | file_d_bb()
-
