@@ -234,16 +234,16 @@ class Position:
 
         if self.has_king_move(color_to_move):
             return True
-        # if self.has_rook_move(color_to_move):
-        #     return True
-        # if self.has_queen_move(color_to_move):
-        #     return True
-        # if self.has_knight_move(color_to_move):
-        #     return True
-        # if self.has_bishop_move(color_to_move):
-        #     return True
-        # if self.has_pawn_move(color_to_move):
-        #     return True
+        if self.has_rook_move(color_to_move):
+            return True
+        if self.has_queen_move(color_to_move):
+            return True
+        if self.has_knight_move(color_to_move):
+            return True
+        if self.has_bishop_move(color_to_move):
+            return True
+        if self.has_pawn_move(color_to_move):
+            return True
         return False
 
     def has_king_move(self, color_to_move):
@@ -1191,7 +1191,6 @@ class Position:
         return move_result
 
     def make_illegal_move_result(self, message: str) -> MoveResult:
-        print(message)
         move_result = MoveResult()
         move_result.is_illegal_move = True
         move_result.fen = generate_fen(self)
