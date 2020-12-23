@@ -158,6 +158,9 @@ class Position:
 
         original_position = PositionState(copy.deepcopy(self.__dict__))
 
+        if not self.color_to_move == move.color:
+            return self.make_illegal_move_result("Not your move!")
+
         if not self.is_legal_move(move):
             return self.make_illegal_move_result("Illegal move")
 
