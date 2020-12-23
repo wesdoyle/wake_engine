@@ -255,6 +255,21 @@ piece_to_glyph = {
     Piece.bK: "♚",
 }
 
+piece_to_value = {
+    Piece.wP: 1,
+    Piece.bP: ︎1,
+    Piece.wR: 5,
+    Piece.bR: 5,
+    Piece.wN: 3,
+    Piece.bN: 3,
+    Piece.wB: 3,
+    Piece.bB: 3,
+    Piece.wQ: 9,
+    Piece.bQ: 9,
+    Piece.wK: np.inf,
+    Piece.bK: np.inf,
+}
+
 user_promotion_input = {
     "queen": Piece.QUEEN,
     "q": Piece.QUEEN,

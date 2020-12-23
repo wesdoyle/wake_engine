@@ -7,7 +7,7 @@ from wake.bitboard_helpers import set_bit, get_northwest_ray, bitscan_forward, g
     get_west_ray, make_uint64, generate_king_attack_bb_from_square, get_squares_from_bitboard
 from wake.board import Board
 from wake.constants import Color, Piece, Square, CastleRoute, Rank, user_promotion_input, white_promotion_map, \
-    black_promotion_map
+    black_promotion_map, piece_to_value
 from wake.fen import generate_fen
 from wake.move import Move, MoveResult
 
@@ -126,7 +126,24 @@ class Position:
             setattr(self, k, v)
 
     @property
-    def get_occupied_squares_by_color(self):
+    def sum_material(self) -> dict:
+        material_balance = {
+            Color.WHITE: 0,
+            Color.BLACK: 0
+        }
+
+        for k, v in self.piece_map.items():
+            if k in { Piece.bK, Piece.wK }:
+                continue
+            if k in Piece.black_pieces:
+                material_balance[Color.BLACK] += len(v) * piece_to_value[k]
+            else:
+                material_balance[Color.WHITE] += len(v) * piece_to_value[k]
+
+        return material_balance
+
+    @property
+    def occupied_squares_by_color(self):
         return {
             Color.BLACK: self.board.black_pieces_bb,
             Color.WHITE: self.board.white_pieces_bb,
@@ -860,7 +877,7 @@ class Position:
         legal_moves = northwest_ray | northeast_ray | southwest_ray | southeast_ray
 
         # remove own piece targets
-        own_piece_targets = self.get_occupied_squares_by_color[color_to_move]
+        own_piece_targets = self.occupied_squares_by_color[color_to_move]
         if own_piece_targets:
             legal_moves &= ~own_piece_targets
 
@@ -921,7 +938,7 @@ class Position:
         legal_moves = north_ray | east_ray | south_ray | west_ray
 
         # Remove own piece targets
-        own_piece_targets = self.get_occupied_squares_by_color[color_to_move]
+        own_piece_targets = self.occupied_squares_by_color[color_to_move]
 
         if own_piece_targets:
             legal_moves &= ~own_piece_targets
@@ -1067,7 +1084,7 @@ class Position:
         legal_moves = north_ray | east_ray | south_ray | west_ray | northeast_ray | southeast_ray | southwest_ray | northwest_ray
 
         # Remove own piece targets
-        own_piece_targets = self.get_occupied_squares_by_color[color_to_move]
+        own_piece_targets = self.occupied_squares_by_color[color_to_move]
 
         if own_piece_targets:
             legal_moves &= ~own_piece_targets
@@ -1204,7 +1221,6 @@ class Position:
         move_result.is_checkmate = True
         move_result.fen = generate_fen(self)
         return move_result
-
 
 def evaluate_move(move, position: Position) -> MoveResult:
     """
