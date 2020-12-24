@@ -1,15 +1,28 @@
+import multiprocessing as mp
+import os
 import sys
+from os import system, name
 
 from wake.bitboard_helpers import pprint_pieces
 from wake.constants import Color
 from wake.position import Position
 from wake.uci_input_parser import UciInputParser
 
+CURRENT_VERSION = "0.1.0"
+
+
+def clear():
+    # for windows
+    if name == 'nt':
+        _ = system('cls')
+    else:
+        _ = system('clear')
+
 
 class Game:
 
-    def __init__(self, mode, queue):
-        self.mode = mode.strip().lower()
+    def __init__(self, interface_mode, queue):
+        self.mode = interface_mode.strip().lower()
         self.queue = queue
         self.history = []
         self.position = Position()
@@ -25,9 +38,6 @@ class Game:
     def run(self):
         if self.mode == "uci":
             self.run_uci_mode()
-        else:
-            print("That's not a valid mode.")
-            self.run()
 
     def try_parse_move(self, move):
         engine_input = self.parser.parse_input(move)
@@ -43,13 +53,16 @@ class Game:
             return engine_input.move
 
     def run_uci_mode(self):
+        sentinel = False
         while True:
-            if not self.queue.empty():
-                msg = self.queue.get()
-                print("<< Engine Got new message", msg.strip())
-
+            if not sentinel:
+                print(f"Wake Engine [{CURRENT_VERSION}] running using interface mode: [{self.mode}]")
                 print(f"{self.color_to_move[self.position.color_to_move]} to move:")
-
+                pprint_pieces(self.position.piece_map)
+                sentinel = True
+            if not self.queue.empty():
+                clear()
+                msg = self.queue.get()
                 move = self.try_parse_move(msg)
 
                 if not move:
@@ -69,32 +82,27 @@ class Game:
                     self.is_over = True
 
                 self.history.append(move_result.fen)
-                pprint_pieces(self.position.piece_map)
+                sentinel = False
+
+            else:
+                pass
 
 
-import multiprocessing as mp
-import os
-
-
-def engine_proc(queue, mode):
-
-    print("Using input mode:", mode)
-
-    game = Game(mode, queue)
-
+def engine_proc(queue, interface_mode="uci"):
+    clear()
+    game = Game(interface_mode, queue)
     game.run()
+
 
 def reader_proc(queue, fileno):
     sys.stdin = os.fdopen(fileno)
     while True:
         input_move = sys.stdin.readline()
         queue.put(input_move)
-        print(f">> Reader sending {input_move.strip()} to work Queue()")
 
 
 if __name__ == "__main__":
-    mode = input("Welcome to Wake. Choose an input mode [UCI]:")
-
+    mode = "UCI"
     inp_queue = mp.Queue()
 
     engine_process = mp.Process(target=engine_proc, args=(inp_queue, mode))
@@ -102,11 +110,10 @@ if __name__ == "__main__":
     engine_process.start()
     fn = sys.stdin.fileno()
 
-    reader_process = mp.Process(target=reader_proc, args=(inp_queue,fn))
+    reader_process = mp.Process(target=reader_proc, args=(inp_queue, fn))
     reader_process.daemon = False
     reader_process.start()
 
-    print("Wake Engine [0.1.0] started")
 
     engine_process.join()
     reader_process.join()
