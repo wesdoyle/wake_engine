@@ -13,7 +13,7 @@ CURRENT_VERSION = "0.1.0"
 
 
 def clear():
-    # for windows
+    # Windows
     if name == 'nt':
         _ = system('cls')
     else:

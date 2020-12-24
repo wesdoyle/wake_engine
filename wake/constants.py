@@ -402,4 +402,38 @@ class UciCommand:
         INFINITE = 'go infinite'
 
 
+class UciResponse:
+    # Valid type-safe commands for UCI output to GUI
+    # See http://wbec-ridderkerk.nl/html/UCIProtocol.html
+    ID_NAME = "id name"
+    ID_AUTHOR = "id author"
+    UCIOK = "uciok"
+    READYOK = "readyok"
+    BESTMOVE = "bestmove"
+    COPYPROTECTION = "copyprotection"
+    REGISTRATION = "registration"
+
+    class Info:
+        DEPTH = "info depth"
+        SELDEPTH = "info seldepth"
+        TIME = "info time"
+        NODES = "info nodes"
+        PV = "info pv"
+        MULTIPV = "info multipv"
+        SCORE_CP = "info score cp"
+        SCORE_MATE = "info score mate"
+        SCORE_LOWERBOUND = "info score lowerbound"
+        SCORE_UPPERBOUND= "info score upperbound"
+        CURRMOVE = "info currmove"
+        HASHFULL = "info hashfull"
+        NPS = "info nps"
+        TBHITS = "info tbhits"
+        CPULOAD = "info cpuload"
+        STRING = "info string"
+        REFUTAITON = "info refutation"
+        CURRLINE = "info currline"
+
+
+
+
 
