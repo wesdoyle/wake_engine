@@ -20,9 +20,11 @@ class Game:
 
     def run(self):
         while not self.is_over:
-            move = input(f"{self.color_to_move[self.position.color_to_move]} to move:")
+            uci_input = input(f"{self.color_to_move[self.position.color_to_move]} to move:")
 
-            if not self.try_parse_move(move):
+            move = self.try_parse_move(uci_input)
+
+            if not move:
                 print("Invalid move format")
                 continue
 
@@ -38,6 +40,7 @@ class Game:
                 self.score = [0.5, 0.5]
                 self.is_over = True
 
+            self.history.append(move_result.fen)
             pprint_pieces(self.position.piece_map)
 
         print(self.score)
@@ -54,3 +57,8 @@ class Game:
                 return None
             engine_input.move.piece = move_piece
             return engine_input.move
+
+
+if __name__ == "__main__":
+    game = Game()
+    game.run()
