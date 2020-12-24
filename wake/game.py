@@ -1,4 +1,3 @@
-import asyncio
 import sys
 
 from wake.bitboard_helpers import pprint_pieces
@@ -7,21 +6,12 @@ from wake.position import Position
 from wake.uci_input_parser import UciInputParser
 
 
-async def connect_stdin_stdout():
-    event_loop = asyncio.get_event_loop()
-    stream_reader = asyncio.StreamReader()
-    protocol = asyncio.StreamReaderProtocol(stream_reader)
-    await event_loop.connect_read_pipe(lambda: protocol, sys.stdin)
-    w_transport, w_protocol = await event_loop.connect_write_pipe(asyncio.streams.FlowControlMixin, sys.stdout)
-    stream_writer = asyncio.StreamWriter(w_transport, w_protocol, stream_reader, event_loop)
-    return stream_reader, stream_writer
-
-
 class Game:
 
-    def __init__(self, mode):
+    def __init__(self, mode, queue):
         self.mode = mode.strip().lower()
-        self.history = []  # Stack of FENs (TODO: consider stacking position states)
+        self.queue = queue
+        self.history = []
         self.position = Position()
         self.is_over = False
         self.score = [0, 0]
@@ -34,13 +24,13 @@ class Game:
 
     def run(self):
         if self.mode == "uci":
-            await self.run_uci_mode()
+            self.run_uci_mode()
         else:
             print("That's not a valid mode.")
             self.run()
 
-    async def try_parse_move(self, move):
-        engine_input = await self.parser.parse_input(move)
+    def try_parse_move(self, move):
+        engine_input = self.parser.parse_input(move)
         if not engine_input.is_valid:
             print("Invalid input")
             return None
@@ -52,34 +42,34 @@ class Game:
             engine_input.move.piece = move_piece
             return engine_input.move
 
-    async def run_uci_mode(self):
-        reader, writer = await connect_stdin_stdout()
+    def run_uci_mode(self):
+        while True:
+            if not self.queue.empty():
+                msg = self.queue.get()
+                print("<< Engine Got new message", msg.strip())
 
-        while not self.is_over:
-            print(f"{self.color_to_move[self.position.color_to_move]} to move:")
+                print(f"{self.color_to_move[self.position.color_to_move]} to move:")
 
-            uci_input = await reader.readuntil()
+                move = self.try_parse_move(msg)
 
-            move = await self.try_parse_move(uci_input)
+                if not move:
+                    print("Invalid move format")
+                    continue
 
-            if not move:
-                print("Invalid move format")
-                continue
+                move_result = self.position.make_move(move)
 
-            move_result = self.position.make_move(move)
+                if move_result.is_checkmate:
+                    print("Checkmate")
+                    self.score[self.position.color_to_move] = 1
+                    self.is_over = True
 
-            if move_result.is_checkmate:
-                print("Checkmate")
-                self.score[self.position.color_to_move] = 1
-                self.is_over = True
+                if move_result.is_stalemate:
+                    print("Stalemate")
+                    self.score = [0.5, 0.5]
+                    self.is_over = True
 
-            if move_result.is_stalemate:
-                print("Stalemate")
-                self.score = [0.5, 0.5]
-                self.is_over = True
-
-            self.history.append(move_result.fen)
-            pprint_pieces(self.position.piece_map)
+                self.history.append(move_result.fen)
+                pprint_pieces(self.position.piece_map)
 
 
 import multiprocessing as mp
@@ -90,14 +80,9 @@ def engine_proc(queue, mode):
 
     print("Using input mode:", mode)
 
-    game = Game(mode)
-    # game.run()
+    game = Game(mode, queue)
 
-    while True:
-        if not queue.empty():
-            msg = queue.get()
-            print("<< Engine Got new message", msg.strip())
-
+    game.run()
 
 def reader_proc(queue, fileno):
     sys.stdin = os.fdopen(fileno)

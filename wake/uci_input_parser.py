@@ -17,7 +17,7 @@ class UciCommand:
         self.move = None
 
 
-async def translate_promote(param):
+def translate_promote(param):
     promote_piece_map = {
         'q': Piece.QUEEN,
         'n': Piece.KNIGHT,
@@ -31,10 +31,9 @@ class UciInputParser:
     def __init__(self):
         self.move_pattern = re.compile(r'([a-h][1-8])([a-h][1-8])|([qnrb])')
 
-    async def parse_input(self, user_input) -> UciCommand:
-        decoded = user_input.decode("utf-8")
-        if self.move_pattern.match(decoded):
-            match = self.move_pattern.match(decoded)
+    def parse_input(self, user_input) -> UciCommand:
+        if self.move_pattern.match(user_input):
+            match = self.move_pattern.match(user_input)
             from_sq = algebraic_square_map.get(match.groups()[0])
             to_sq = algebraic_square_map.get(match.groups()[1])
             if not from_sq or not to_sq:
