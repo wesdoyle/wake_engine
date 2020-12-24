@@ -6,7 +6,7 @@ class Move:
     Represents the motion of a piece from an origin square to a target square
     """
 
-    def __init__(self, piece, squares):
+    def __init__(self, piece=None, squares=None):
         self.piece = piece
         self.from_sq = squares[0]
         self.to_sq = squares[1]

@@ -139,7 +139,7 @@ class Position:
         }
 
         for k, v in self.piece_map.items():
-            if k in { Piece.bK, Piece.wK }:
+            if k in {Piece.bK, Piece.wK}:
                 continue
             if k in Piece.black_pieces:
                 material_balance[Color.BLACK] += len(v) * piece_to_value[k]
@@ -1227,6 +1227,14 @@ class Position:
         move_result.is_checkmate = True
         move_result.fen = generate_fen(self)
         return move_result
+
+    def get_piece_on_square(self, from_sq):
+        for k, v in self.piece_map.items():
+            for square in v:
+                if square == from_sq:
+                    return k
+        return None
+
 
 def evaluate_move(move, position: Position) -> MoveResult:
     """

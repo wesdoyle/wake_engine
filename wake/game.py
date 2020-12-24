@@ -1,5 +1,7 @@
+from wake.bitboard_helpers import pprint_pieces
 from wake.constants import Color, Piece
 from wake.position import Position
+from wake.uci_input_parser import UciInputParser
 
 
 class Game:
@@ -9,6 +11,7 @@ class Game:
         self.position = Position()
         self.is_over = False
         self.score = [0, 0]
+        self.parser = UciInputParser()
 
         self.color_to_move = {
             Color.WHITE: "White",
@@ -22,6 +25,7 @@ class Game:
             if not self.try_parse_move(move):
                 print("Invalid move format")
                 continue
+
             move_result = self.position.make_move(move)
 
             if move_result.is_checkmate:
@@ -34,26 +38,19 @@ class Game:
                 self.score = [0.5, 0.5]
                 self.is_over = True
 
+            pprint_pieces(self.position.piece_map)
+
         print(self.score)
 
     def try_parse_move(self, move):
-        "p e2 e4"
-        if move.lower().strip() not in console_piece_notation_map:
-            return False
-
-
-console_piece_notation_map = {
-    "wp": Piece.wP,
-    "wb": Piece.wB,
-    "wn": Piece.wN,
-    "wk": Piece.wK,
-    "wr": Piece.wR,
-    "wq": Piece.wQ,
-
-    "bp": Piece.bP,
-    "bb": Piece.bB,
-    "bn": Piece.bN,
-    "bk": Piece.bK,
-    "br": Piece.bR,
-    "bq": Piece.bQ,
-}
+        engine_input = self.parser.parse_input(move)
+        if not engine_input.is_valid:
+            print("Invalid input")
+            return None
+        if engine_input.is_move:
+            move_piece = self.position.get_piece_on_square(engine_input.move.from_sq)
+            if not move_piece:
+                print("Invalid input")
+                return None
+            engine_input.move.piece = move_piece
+            return engine_input.move
