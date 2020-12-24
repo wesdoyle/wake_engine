@@ -1,4 +1,4 @@
-import threading
+import asyncio
 from wake.bitboard_helpers import pprint_pieces
 from wake.constants import Color
 from wake.position import Position
@@ -19,16 +19,19 @@ class Game:
             Color.BLACK: "Black",
         }
 
-    def run(self):
+    async def run(self):
         choose_mode = input("Choose input mode (UCI is the only mode available): ")
 
         if choose_mode.strip().lower() == 'uci':
             self.run_uci_mode()
 
         else:
-            self.run()
+            await self.run()
 
         print(self.score)
+
+    async def main(self):
+        task = asyncio.Task(self.run())
 
     def try_parse_move(self, move):
         engine_input = self.parser.parse_input(move)
@@ -70,5 +73,12 @@ class Game:
 
 
 if __name__ == "__main__":
-    game = Game()
-    game.run()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        game = Game()
+        loop.run_until_complete(game.run())
+    finally:
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
+
