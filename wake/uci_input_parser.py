@@ -5,12 +5,12 @@ from wake.move import Move
 
 
 def make_invalid_uci_command():
-    command = UciCommand()
+    command = UciMove()
     command.is_valid = False
     return command
 
 
-class UciCommand:
+class UciMove:
     def __init__(self):
         self.is_valid = False
         self.is_move = False
@@ -31,7 +31,7 @@ class UciInputParser:
     def __init__(self):
         self.move_pattern = re.compile(r'([a-h][1-8])([a-h][1-8])|([qnrb])')
 
-    def parse_input(self, user_input) -> UciCommand:
+    def parse_input(self, user_input) -> UciMove:
         if self.move_pattern.match(user_input):
             match = self.move_pattern.match(user_input)
             from_sq = algebraic_square_map.get(match.groups()[0])
@@ -44,7 +44,7 @@ class UciInputParser:
                 move.promote_to = translate_promote(match.groups()[2])
                 if not move.promote_to:
                     return make_invalid_uci_command()
-            command = UciCommand()
+            command = UciMove()
             command.is_valid = True
             command.is_move = True
             command.move = Move(piece=None, squares=(from_sq, to_sq))
