@@ -1,5 +1,6 @@
+import threading
 from wake.bitboard_helpers import pprint_pieces
-from wake.constants import Color, Piece
+from wake.constants import Color
 from wake.position import Position
 from wake.uci_input_parser import UciInputParser
 
@@ -19,6 +20,30 @@ class Game:
         }
 
     def run(self):
+        choose_mode = input("Choose input mode (UCI is the only mode available): ")
+
+        if choose_mode.strip().lower() == 'uci':
+            self.run_uci_mode()
+
+        else:
+            self.run()
+
+        print(self.score)
+
+    def try_parse_move(self, move):
+        engine_input = self.parser.parse_input(move)
+        if not engine_input.is_valid:
+            print("Invalid input")
+            return None
+        if engine_input.is_move:
+            move_piece = self.position.get_piece_on_square(engine_input.move.from_sq)
+            if not move_piece:
+                print("Invalid input")
+                return None
+            engine_input.move.piece = move_piece
+            return engine_input.move
+
+    def run_uci_mode(self):
         while not self.is_over:
             uci_input = input(f"{self.color_to_move[self.position.color_to_move]} to move:")
 
@@ -42,21 +67,6 @@ class Game:
 
             self.history.append(move_result.fen)
             pprint_pieces(self.position.piece_map)
-
-        print(self.score)
-
-    def try_parse_move(self, move):
-        engine_input = self.parser.parse_input(move)
-        if not engine_input.is_valid:
-            print("Invalid input")
-            return None
-        if engine_input.is_move:
-            move_piece = self.position.get_piece_on_square(engine_input.move.from_sq)
-            if not move_piece:
-                print("Invalid input")
-                return None
-            engine_input.move.piece = move_piece
-            return engine_input.move
 
 
 if __name__ == "__main__":
