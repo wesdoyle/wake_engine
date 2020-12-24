@@ -1,5 +1,6 @@
-import sys
 import asyncio
+import sys
+
 from wake.bitboard_helpers import pprint_pieces
 from wake.constants import Color
 from wake.position import Position
@@ -18,7 +19,8 @@ async def connect_stdin_stdout():
 
 class Game:
 
-    def __init__(self):
+    def __init__(self, mode):
+        self.mode = mode.strip().lower()
         self.history = []  # Stack of FENs (TODO: consider stacking position states)
         self.position = Position()
         self.is_over = False
@@ -30,21 +32,12 @@ class Game:
             Color.BLACK: "Black",
         }
 
-    async def run(self):
-        reader, writer = await connect_stdin_stdout()
-        print("Choose input mode (UCI is the only mode available): ")
-
-        res = await reader.readuntil()
-
-        if res:
-            # if str(res).strip().lower() == b'uci\n':
-            print("OK")
+    def run(self):
+        if self.mode == "uci":
             await self.run_uci_mode()
-
         else:
-            await self.run()
-
-        print(self.score)
+            print("That's not a valid mode.")
+            self.run()
 
     async def try_parse_move(self, move):
         engine_input = await self.parser.parse_input(move)
@@ -89,13 +82,48 @@ class Game:
             pprint_pieces(self.position.piece_map)
 
 
-if __name__ == "__main__":
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+import multiprocessing as mp
+import os
 
-    try:
-        game = Game()
-        loop.run_until_complete(game.run())
-    finally:
-        loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.close()
+
+def engine_proc(queue, mode):
+
+    print("Using input mode:", mode)
+
+    game = Game(mode)
+    # game.run()
+
+    while True:
+        if not queue.empty():
+            msg = queue.get()
+            print("<< Engine Got new message", msg.strip())
+
+
+def reader_proc(queue, fileno):
+    sys.stdin = os.fdopen(fileno)
+    while True:
+        input_move = sys.stdin.readline()
+        queue.put(input_move)
+        print(f">> Reader sending {input_move.strip()} to work Queue()")
+
+
+if __name__ == "__main__":
+    mode = input("Welcome to Wake. Choose an input mode [UCI]:")
+
+    inp_queue = mp.Queue()
+
+    engine_process = mp.Process(target=engine_proc, args=(inp_queue, mode))
+    engine_process.daemon = True
+    engine_process.start()
+    fn = sys.stdin.fileno()
+
+    reader_process = mp.Process(target=reader_proc, args=(inp_queue,fn))
+    reader_process.daemon = False
+    reader_process.start()
+
+    print("Wake Engine [0.1.0] started")
+
+    engine_process.join()
+    reader_process.join()
+
+    print("Goodbye")
