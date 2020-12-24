@@ -1,8 +1,19 @@
+import sys
 import asyncio
 from wake.bitboard_helpers import pprint_pieces
 from wake.constants import Color
 from wake.position import Position
 from wake.uci_input_parser import UciInputParser
+
+
+async def connect_stdin_stdout():
+    event_loop = asyncio.get_event_loop()
+    stream_reader = asyncio.StreamReader()
+    protocol = asyncio.StreamReaderProtocol(stream_reader)
+    await event_loop.connect_read_pipe(lambda: protocol, sys.stdin)
+    w_transport, w_protocol = await event_loop.connect_write_pipe(asyncio.streams.FlowControlMixin, sys.stdout)
+    stream_writer = asyncio.StreamWriter(w_transport, w_protocol, stream_reader, event_loop)
+    return stream_reader, stream_writer
 
 
 class Game:
@@ -20,21 +31,23 @@ class Game:
         }
 
     async def run(self):
-        choose_mode = input("Choose input mode (UCI is the only mode available): ")
+        reader, writer = await connect_stdin_stdout()
+        print("Choose input mode (UCI is the only mode available): ")
 
-        if choose_mode.strip().lower() == 'uci':
-            self.run_uci_mode()
+        res = await reader.readuntil()
+
+        if res:
+            # if str(res).strip().lower() == b'uci\n':
+            print("OK")
+            await self.run_uci_mode()
 
         else:
             await self.run()
 
         print(self.score)
 
-    async def main(self):
-        task = asyncio.Task(self.run())
-
-    def try_parse_move(self, move):
-        engine_input = self.parser.parse_input(move)
+    async def try_parse_move(self, move):
+        engine_input = await self.parser.parse_input(move)
         if not engine_input.is_valid:
             print("Invalid input")
             return None
@@ -46,11 +59,15 @@ class Game:
             engine_input.move.piece = move_piece
             return engine_input.move
 
-    def run_uci_mode(self):
-        while not self.is_over:
-            uci_input = input(f"{self.color_to_move[self.position.color_to_move]} to move:")
+    async def run_uci_mode(self):
+        reader, writer = await connect_stdin_stdout()
 
-            move = self.try_parse_move(uci_input)
+        while not self.is_over:
+            print(f"{self.color_to_move[self.position.color_to_move]} to move:")
+
+            uci_input = await reader.readuntil()
+
+            move = await self.try_parse_move(uci_input)
 
             if not move:
                 print("Invalid move format")
@@ -75,10 +92,10 @@ class Game:
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+
     try:
         game = Game()
         loop.run_until_complete(game.run())
     finally:
         loop.run_until_complete(loop.shutdown_asyncgens())
         loop.close()
-
