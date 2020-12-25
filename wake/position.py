@@ -623,7 +623,12 @@ class Position:
         if move.piece == Piece.wP:
             if not (self.board.white_P_bb & current_square_bb):
                 return False
+
             if self.is_not_pawn_motion_or_attack(move):
+                return False
+
+            # If it's a pawn motion forward, check that it isn't blocked
+            if move.from_sq == move.to_sq - 8 and (moving_to_square_bb & self.board.occupied_squares_bb):
                 return False
 
             # If it's a pawn attack move, check that it intersects with black pieces or ep target
@@ -636,6 +641,10 @@ class Position:
             if not (self.board.black_P_bb & current_square_bb):
                 return False
             if self.is_not_pawn_motion_or_attack(move):
+                return False
+
+            # If it's a pawn motion forward, check that it isn't blocked
+            if move.from_sq == move.to_sq + 8 and (moving_to_square_bb & self.board.occupied_squares_bb):
                 return False
 
             # If it's a pawn attack move, check that it intersects with white pieces or ep target

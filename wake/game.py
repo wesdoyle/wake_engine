@@ -58,8 +58,8 @@ class Game:
             if not sentinel:
                 print(f"Wake Engine [{CURRENT_VERSION}] running using interface mode: [{self.mode}]")
                 print(f"{self.color_to_move[self.position.color_to_move]} to move:")
-                pprint_pieces(self.position.piece_map)
                 sentinel = True
+                pprint_pieces(self.position.piece_map)
             if not self.queue.empty():
                 clear()
                 msg = self.queue.get().strip()
