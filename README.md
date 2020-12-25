@@ -2,9 +2,11 @@
 
 <img src="./wake.png" width="220px"></img>
 
-Livestream series in progress, but it starts here: https://www.youtube.com/watch?v=1QotIA4_jb4
+## Livesteam
 
-Wake is a Python (numPy)-based chess engine.  It is currently a work in progress.
+Significant portions of this project have been built on livestream to document the learning process.
+
+The livestream series is in progress on YouTube, and it starts here: https://www.youtube.com/watch?v=1QotIA4_jb4
 
 ## Using the Engine
 
@@ -34,7 +36,7 @@ White to move:
    A B C D E F G H
 ```
 
-To make a move, use UCI-style move inputs, e.g: `e2e4`.  This will update the
+To make a move, use UCI-style (short algebraic notation) move inputs, e.g: `e2e4`.  This will update the
 state of the game.
 
 ```
@@ -56,7 +58,7 @@ The engine code is currently under development, using the UCI protocol to define
 
 The only valid inputs are currently:
 
-- Any valid move (e.g. `g1f3` for a normal move, a7a8q` for promotion)
+- Any valid move (e.g. `g1f3` for a normal move, `a7a8q` for promotion)
 - `quit` to kill the engine and terminal input processes.
 
 ## Contributing
