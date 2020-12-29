@@ -1303,52 +1303,9 @@ def evaluate_move(move, position: Position) -> MoveResult:
 
     return position.make_move_result()
 
-def is_legal_move(self, move: Move) -> bool:
-    """
-    For a given move, returns True iff it is legal given the Position state
-    """
-    piece = move.piece
-
-    if self.is_capture(move):
-        move.is_capture = True
-
-    if piece in (Piece.wP, Piece.bP):
-        is_legal_pawn_move = self.is_legal_pawn_move(move)
-
-        if not is_legal_pawn_move:
-            return False
-
-        if self.is_promotion(move):
-            move.is_promotion = True
-            return True
-
-        en_passant_target = self.try_get_en_passant_target(move)
-
-        if en_passant_target:
-            self.en_passant_side = move.color
-            self.en_passant_target = int(en_passant_target)
-
-        if move.to_sq == self.en_passant_target:
-            self.is_en_passant_capture = True
-
-        return True
-
-    if piece in (Piece.wB, Piece.bB):
-        return self.is_legal_bishop_move(move)
-
-    if piece in (Piece.wR, Piece.bR):
-        return self.is_legal_rook_move(move)
-
-    if piece in (Piece.wN, Piece.bN):
-        return self.is_legal_knight_move(move)
-
-    if piece in (Piece.wQ, Piece.bQ):
-        return self.is_legal_queen_move(move)
-
-    if piece in (Piece.wK, Piece.bK):
-        is_legal_king_move = self.is_legal_king_move(move)
-        if not is_legal_king_move:
-            return False
-        if self.is_castling(move):
-            move.is_castling = True
-        return True
+def generate_all_legal_moves(position: Position):
+    legal_moves = []
+    king_moves = generate_king_moves(position)
+    queen_moves = generate_queen_moves(position)
+    pawn_moves = generate_pawn_moves(position)
+    rook_moves = generate_rook_moves(position)

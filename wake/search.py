@@ -5,6 +5,7 @@ class Node:
     """
     Represents a game state in which all of the valid moves for a player are represented
     """
+
     def __init__(self, position):
         self.position = position
         self.valid_moves = []
@@ -16,6 +17,10 @@ class Node:
     @property
     def children(self):
         return []
+
+
+def build_position_tree(initial_position) -> Node:
+    pass
 
 
 class PositionEvaluation:
