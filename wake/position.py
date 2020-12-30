@@ -55,6 +55,13 @@ class PositionState:
         self.black_king_attacks = kwargs['black_king_attacks']
 
 
+def get_promotion_piece_type(legal_piece, move):
+    if move.color == Color.WHITE:
+        return white_promotion_map[legal_piece]
+    if move.color == Color.BLACK:
+        return black_promotion_map[legal_piece]
+
+
 class Position:
     """
     Represents the internal state of a chess position
@@ -300,7 +307,7 @@ class Position:
                 print("Please choose a legal piece")
                 continue
             self.piece_map[move.piece].remove(move.to_sq)
-            new_piece = self.get_promotion_piece_type(legal_piece, move)
+            new_piece = get_promotion_piece_type(legal_piece, move)
             self.piece_map[new_piece].add(move.to_sq)
             break
 
@@ -343,7 +350,7 @@ class Position:
 
         for to_square in king_squares:
             move = Move(king_piece, (king_from_square, to_square))
-            move = evaluate_move(move, copy.deepcopy(self))
+            move = evaluate_move_legality(move, copy.deepcopy(self))
             if not move.is_illegal_move:
                 return True
 
@@ -363,7 +370,7 @@ class Position:
         for rook_from_square in list(current_rook_locations):
             for to_square in rook_attack_squares:
                 move = Move(rook_piece, (rook_from_square, to_square))
-                move = evaluate_move(move, copy.deepcopy(self))
+                move = evaluate_move_legality(move, copy.deepcopy(self))
                 if not move.is_illegal_move:
                     return True
         return False
@@ -382,7 +389,7 @@ class Position:
         for queen_from_square in list(current_queen_locations):
             for to_square in queen_squares:
                 move = Move(queen_piece, (queen_from_square, to_square))
-                move = evaluate_move(move, copy.deepcopy(self))
+                move = evaluate_move_legality(move, copy.deepcopy(self))
                 if not move.is_illegal_move:
                     return True
         return False
@@ -401,7 +408,7 @@ class Position:
         for knight_from_square in current_knight_locations:
             for to_square in knight_squares:
                 move = Move(knight_piece, (knight_from_square, to_square))
-                move = evaluate_move(move, copy.deepcopy(self))
+                move = evaluate_move_legality(move, copy.deepcopy(self))
                 if not move.is_illegal_move:
                     return True
         return False
@@ -420,7 +427,7 @@ class Position:
         for bishop_from_square in current_bishop_locations:
             for to_square in bishop_squares:
                 move = Move(bishop_piece, (bishop_from_square, to_square))
-                move = evaluate_move(move, copy.deepcopy(self))
+                move = evaluate_move_legality(move, copy.deepcopy(self))
                 if not move.is_illegal_move:
                     return True
         return False
@@ -439,7 +446,7 @@ class Position:
         for pawn_from_square in list(current_pawn_locations):
             for to_square in pawn_squares:
                 move = Move(pawn_piece, (pawn_from_square, to_square))
-                move = evaluate_move(move, copy.deepcopy(self))
+                move = evaluate_move_legality(move, copy.deepcopy(self))
                 if not move.is_illegal_move:
                     return True
         return False
@@ -1001,7 +1008,6 @@ class Position:
         :return: True iff Move is legal
         """
         bitboard = make_uint64()
-
         self.white_pawn_attacks = self.board.white_pawn_attacks
         self.black_pawn_attacks = self.board.black_pawn_attacks
 
@@ -1223,12 +1229,6 @@ class Position:
             return [not kingside_blocked.any() and is_rook_on_h8.any(),
                     not queenside_blocked.any() and is_rook_on_a8.any()]
 
-    def get_promotion_piece_type(self, legal_piece, move):
-        if move.color == Color.WHITE:
-            return white_promotion_map[legal_piece]
-        if move.color == Color.BLACK:
-            return black_promotion_map[legal_piece]
-
     def evaluate_king_check(self):
         """
         Evaluates instance state for intersection of attacked squares and opposing king position.
@@ -1270,7 +1270,7 @@ class Position:
         return None
 
 
-def evaluate_move(move, position: Position) -> MoveResult:
+def evaluate_move_legality(move, position: Position) -> MoveResult:
     """
     Evaluates if a move is fully legal
     """
@@ -1320,115 +1320,3 @@ def evaluate_move(move, position: Position) -> MoveResult:
 
     return position.make_move_result()
 
-
-def generate_rook_moves(position: Position) -> list:
-    moves = []
-    rook_attacks = position.rook_color_map[position.color_to_move][0]
-    rook_piece = position.rook_color_map[position.color_to_move][1]
-    if not rook_attacks.any():
-        return []
-    current_rook_locations = position.piece_map[rook_piece]
-    rook_attack_squares = get_squares_from_bitboard(rook_attacks)
-    for rook_from_square in list(current_rook_locations):
-        for to_square in rook_attack_squares:
-            move = Move(rook_piece, (rook_from_square, to_square))
-            move = evaluate_move(move, copy.deepcopy(position))
-            if not move.is_illegal_move:
-                moves.append(move)
-    return moves
-
-
-def generate_bishop_moves(pos: Position) -> list:
-    moves = []
-    bishop_attacks = pos.bishop_color_map[pos.color_to_move][0]
-    bishop_piece = pos.bishop_color_map[pos.color_to_move][1]
-    if not bishop_attacks.any():
-        return []
-    current_bishop_locations = list(pos.piece_map[bishop_piece])
-    bishop_squares = get_squares_from_bitboard(bishop_attacks)
-    for bishop_from_square in current_bishop_locations:
-        for to_square in bishop_squares:
-            move = Move(bishop_piece, (bishop_from_square, to_square))
-            move = evaluate_move(move, copy.deepcopy(pos))
-            if not move.is_illegal_move:
-                moves.append(move)
-    return moves
-
-
-def generate_knight_moves(pos: Position) -> list:
-    moves = []
-    knight_attacks = pos.knight_color_map[pos.color_to_move][0]
-    knight_piece = pos.knight_color_map[pos.color_to_move][1]
-    if not knight_attacks.any():
-        return []
-    current_knight_locations = list(pos.piece_map[knight_piece])
-    knight_squares = get_squares_from_bitboard(knight_attacks)
-    for knight_from_square in current_knight_locations:
-        for to_square in knight_squares:
-            move = Move(knight_piece, (knight_from_square, to_square))
-            move = evaluate_move(move, copy.deepcopy(pos))
-            if not move.is_illegal_move:
-                moves.append(move)
-    return moves
-
-
-def generate_king_moves(pos: Position) -> list:
-    moves = []
-    king_attacks = pos.king_color_map[pos.color_to_move][0] & ~pos.attacked_squares_map[not pos.color_to_move]
-    king_piece = pos.king_color_map[pos.color_to_move][1]
-    if not king_attacks.any():
-        return []
-    king_piece_map_copy = pos.piece_map[king_piece].copy()
-    king_from_square = king_piece_map_copy.pop()
-    king_squares = get_squares_from_bitboard(king_attacks)
-    for to_square in king_squares:
-        move = Move(king_piece, (king_from_square, to_square))
-        move = evaluate_move(move, copy.deepcopy(pos))
-        if not move.is_illegal_move:
-            moves.append(move)
-    return moves
-
-
-def generate_queen_moves(pos: Position) -> list:
-    moves = []
-    queen_attacks = pos.queen_color_map[pos.color_to_move][0]
-    queen_piece = pos.queen_color_map[pos.color_to_move][1]
-    if not queen_attacks.any():
-        return []
-    current_queen_locations = pos.piece_map[queen_piece]
-    queen_squares = get_squares_from_bitboard(queen_attacks)
-    for queen_from_square in list(current_queen_locations):
-        for to_square in queen_squares:
-            move = Move(queen_piece, (queen_from_square, to_square))
-            move = evaluate_move(move, copy.deepcopy(pos))
-            if not move.is_illegal_move:
-                moves.append(move)
-    return moves
-
-
-def generate_pawn_moves(pos: Position) -> list:
-    moves = []
-    all_pawn_moves = pos.pawn_color_map[pos.color_to_move][0]
-    pawn_piece = pos.pawn_color_map[pos.color_to_move][1]
-    if not all_pawn_moves.any():
-        return []
-    current_pawn_locations = pos.piece_map[pawn_piece]
-    pawn_squares = get_squares_from_bitboard(all_pawn_moves)
-    for pawn_from_square in list(current_pawn_locations):
-        for to_square in pawn_squares:
-            move = Move(pawn_piece, (pawn_from_square, to_square))
-            move = evaluate_move(move, copy.deepcopy(pos))
-            if not move.is_illegal_move:
-                moves.append(move)
-    return moves
-
-
-def generate_all_legal_moves(position: Position):
-    moves = []
-    moves.extend(generate_rook_moves(position))
-    moves.extend(generate_knight_moves(position))
-    moves.extend(generate_bishop_moves(position))
-    moves.extend(generate_king_moves(position))
-    moves.extend(generate_queen_moves(position))
-    moves.extend(generate_pawn_moves(position))
-    return moves
