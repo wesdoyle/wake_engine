@@ -6,7 +6,7 @@ from os import system, name
 
 from wake.bitboard_helpers import pprint_pieces
 from wake.constants import Color, UciCommand
-from wake.position import Position
+from wake.position import Position, generate_all_legal_moves
 from wake.uci_input_parser import UciInputParser
 
 CURRENT_VERSION = "0.1.0"
@@ -53,13 +53,15 @@ class Game:
             return engine_input.move
 
     def run_uci_mode(self):
+        print(f"Wake Engine [{CURRENT_VERSION}] running using interface mode: [{self.mode}]")
+        print(f"{self.color_to_move[self.position.color_to_move]} to move:")
         sentinel = False
+        pprint_pieces(self.position.piece_map)
+
         while True:
             if not sentinel:
-                print(f"Wake Engine [{CURRENT_VERSION}] running using interface mode: [{self.mode}]")
-                print(f"{self.color_to_move[self.position.color_to_move]} to move:")
                 sentinel = True
-                pprint_pieces(self.position.piece_map)
+
             if not self.queue.empty():
                 clear()
                 msg = self.queue.get().strip()
@@ -82,6 +84,8 @@ class Game:
                     self.score = [0.5, 0.5]
                     self.is_over = True
 
+                pprint_pieces(self.position.piece_map)
+                evaluate_position(self.position)
                 self.history.append(move_result.fen)
                 sentinel = False
 
@@ -127,3 +131,9 @@ if __name__ == "__main__":
                 reader_process.join()
                 print("Peace")
                 sys.exit(0)
+
+
+def evaluate_position(position):
+    moves = generate_all_legal_moves(position)
+    for move in moves[:8]:
+        print(move.__dict__)

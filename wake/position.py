@@ -37,6 +37,7 @@ class PositionState:
         self.halfmove_clock = kwargs['halfmove_clock']
         self.halfmove = kwargs['halfmove']
         self.king_in_check = kwargs['king_in_check']
+        self.is_checkmate = kwargs['is_checkmate']
         self.piece_map = kwargs['piece_map']
         self.white_pawn_moves = kwargs['white_pawn_moves']
         self.white_pawn_attacks = kwargs['white_pawn_attacks']
@@ -77,6 +78,7 @@ class Position:
         self.en_passant_target = None
         self.en_passant_side = Color.WHITE
         self.is_en_passant_capture = False
+        self.is_checkmate = False
 
         # [white, black] boolean king is in check
         self.king_in_check = [0, 0]
@@ -172,6 +174,55 @@ class Position:
                | self.white_pawn_attacks \
                | self.white_queen_attacks \
                | self.white_king_attacks
+
+    @property
+    def rook_color_map(self):
+        return {
+            Color.WHITE: (self.white_rook_attacks, Piece.wR),
+            Color.BLACK: (self.black_rook_attacks, Piece.bR)
+        }
+
+    @property
+    def knight_color_map(self):
+        return {
+            Color.WHITE: (self.white_knight_attacks, Piece.wN),
+            Color.BLACK: (self.black_knight_attacks, Piece.bN)
+        }
+
+    @property
+    def bishop_color_map(self):
+        return {
+            Color.WHITE: (self.white_bishop_attacks, Piece.wB),
+            Color.BLACK: (self.black_bishop_attacks, Piece.bB)
+        }
+
+    @property
+    def queen_color_map(self):
+        return {
+            Color.WHITE: (self.white_queen_attacks, Piece.wQ),
+            Color.BLACK: (self.black_queen_attacks, Piece.bQ)
+        }
+
+    @property
+    def king_color_map(self):
+        return {
+            Color.WHITE: (self.white_king_attacks, Piece.wK),
+            Color.BLACK: (self.black_king_attacks, Piece.bK)
+        }
+
+    @property
+    def pawn_color_map(self):
+        return {
+            Color.WHITE: (self.white_pawn_attacks, Piece.wP),
+            Color.BLACK: (self.black_pawn_attacks, Piece.bP)
+        }
+
+    @property
+    def attacked_squares_map(self):
+        return {
+            Color.WHITE: self.white_attacked_squares,
+            Color.BLACK: self.black_attacked_squares
+        }
 
     # -------------------------------------------------------------
     # MAKE MOVE
@@ -277,18 +328,9 @@ class Position:
         Returns True if there is a legal king move for the given color from the given square
         in the current Position instance
         """
-        king_color_map = {
-            Color.WHITE: (self.white_king_attacks, Piece.wK),
-            Color.BLACK: (self.black_king_attacks, Piece.bK)
-        }
 
-        attacked_squares = {
-            Color.WHITE: self.white_attacked_squares,
-            Color.BLACK: self.black_attacked_squares
-        }
-
-        king_attacks = king_color_map[color_to_move][0] & ~attacked_squares[not color_to_move]
-        king_piece = king_color_map[color_to_move][1]
+        king_attacks = self.king_color_map[color_to_move][0] & ~self.attacked_squares_map[not color_to_move]
+        king_piece = self.king_color_map[color_to_move][1]
 
         # if no attacks, return False
         if not king_attacks.any():
@@ -308,13 +350,8 @@ class Position:
         return False
 
     def has_rook_move(self, color_to_move):
-        rook_color_map = {
-            Color.WHITE: (self.white_rook_attacks, Piece.wR),
-            Color.BLACK: (self.black_rook_attacks, Piece.bR)
-        }
-
-        rook_attacks = rook_color_map[color_to_move][0]
-        rook_piece = rook_color_map[color_to_move][1]
+        rook_attacks = self.rook_color_map[color_to_move][0]
+        rook_piece = self.rook_color_map[color_to_move][1]
 
         # if no attacks, return False
         if not rook_attacks.any():
@@ -332,13 +369,8 @@ class Position:
         return False
 
     def has_queen_move(self, color_to_move):
-        queen_color_map = {
-            Color.WHITE: (self.white_queen_attacks, Piece.wQ),
-            Color.BLACK: (self.black_queen_attacks, Piece.bQ)
-        }
-
-        queen_attacks = queen_color_map[color_to_move][0]
-        queen_piece = queen_color_map[color_to_move][1]
+        queen_attacks = self.queen_color_map[color_to_move][0]
+        queen_piece = self.queen_color_map[color_to_move][1]
 
         # if no attacks, return False
         if not queen_attacks.any():
@@ -356,13 +388,8 @@ class Position:
         return False
 
     def has_knight_move(self, color_to_move):
-        knight_color_map = {
-            Color.WHITE: (self.white_knight_attacks, Piece.wK),
-            Color.BLACK: (self.black_knight_attacks, Piece.bK)
-        }
-
-        knight_attacks = knight_color_map[color_to_move][0]
-        knight_piece = knight_color_map[color_to_move][1]
+        knight_attacks = self.knight_color_map[color_to_move][0]
+        knight_piece = self.knight_color_map[color_to_move][1]
 
         # if no attacks, return False
         if not knight_attacks.any():
@@ -380,13 +407,8 @@ class Position:
         return False
 
     def has_bishop_move(self, color_to_move):
-        bishop_color_map = {
-            Color.WHITE: (self.white_bishop_attacks, Piece.wK),
-            Color.BLACK: (self.black_bishop_attacks, Piece.bK)
-        }
-
-        bishop_attacks = bishop_color_map[color_to_move][0]
-        bishop_piece = bishop_color_map[color_to_move][1]
+        bishop_attacks = self.bishop_color_map[color_to_move][0]
+        bishop_piece = self.bishop_color_map[color_to_move][1]
 
         # if no attacks, return False
         if not bishop_attacks.any():
@@ -404,13 +426,8 @@ class Position:
         return False
 
     def has_pawn_move(self, color_to_move):
-        pawn_color_map = {
-            Color.WHITE: (self.white_pawn_attacks & self.white_pawn_moves, Piece.wK),
-            Color.BLACK: (self.black_pawn_attacks & self.black_pawn_moves, Piece.bK)
-        }
-
-        all_pawn_moves = pawn_color_map[color_to_move][0]
-        pawn_piece = pawn_color_map[color_to_move][1]
+        all_pawn_moves = self.pawn_color_map[color_to_move][0]
+        pawn_piece = self.pawn_color_map[color_to_move][1]
 
         # if no attacks, return False
         if not all_pawn_moves.any():
@@ -1242,6 +1259,7 @@ class Position:
         move_result = MoveResult()
         move_result.is_checkmate = True
         move_result.fen = generate_fen(self)
+        self.is_checkmate = True
         return move_result
 
     def get_piece_on_square(self, from_sq):
@@ -1256,7 +1274,6 @@ def evaluate_move(move, position: Position) -> MoveResult:
     """
     Evaluates if a move is fully legal
     """
-
     if not position.is_legal_move(move):
         return position.make_illegal_move_result("Illegal move")
 
@@ -1303,9 +1320,115 @@ def evaluate_move(move, position: Position) -> MoveResult:
 
     return position.make_move_result()
 
+
+def generate_rook_moves(position: Position) -> list:
+    moves = []
+    rook_attacks = position.rook_color_map[position.color_to_move][0]
+    rook_piece = position.rook_color_map[position.color_to_move][1]
+    if not rook_attacks.any():
+        return []
+    current_rook_locations = position.piece_map[rook_piece]
+    rook_attack_squares = get_squares_from_bitboard(rook_attacks)
+    for rook_from_square in list(current_rook_locations):
+        for to_square in rook_attack_squares:
+            move = Move(rook_piece, (rook_from_square, to_square))
+            move = evaluate_move(move, copy.deepcopy(position))
+            if not move.is_illegal_move:
+                moves.append(move)
+    return moves
+
+
+def generate_bishop_moves(pos: Position) -> list:
+    moves = []
+    bishop_attacks = pos.bishop_color_map[pos.color_to_move][0]
+    bishop_piece = pos.bishop_color_map[pos.color_to_move][1]
+    if not bishop_attacks.any():
+        return []
+    current_bishop_locations = list(pos.piece_map[bishop_piece])
+    bishop_squares = get_squares_from_bitboard(bishop_attacks)
+    for bishop_from_square in current_bishop_locations:
+        for to_square in bishop_squares:
+            move = Move(bishop_piece, (bishop_from_square, to_square))
+            move = evaluate_move(move, copy.deepcopy(pos))
+            if not move.is_illegal_move:
+                moves.append(move)
+    return moves
+
+
+def generate_knight_moves(pos: Position) -> list:
+    moves = []
+    knight_attacks = pos.knight_color_map[pos.color_to_move][0]
+    knight_piece = pos.knight_color_map[pos.color_to_move][1]
+    if not knight_attacks.any():
+        return []
+    current_knight_locations = list(pos.piece_map[knight_piece])
+    knight_squares = get_squares_from_bitboard(knight_attacks)
+    for knight_from_square in current_knight_locations:
+        for to_square in knight_squares:
+            move = Move(knight_piece, (knight_from_square, to_square))
+            move = evaluate_move(move, copy.deepcopy(pos))
+            if not move.is_illegal_move:
+                moves.append(move)
+    return moves
+
+
+def generate_king_moves(pos: Position) -> list:
+    moves = []
+    king_attacks = pos.king_color_map[pos.color_to_move][0] & ~pos.attacked_squares_map[not pos.color_to_move]
+    king_piece = pos.king_color_map[pos.color_to_move][1]
+    if not king_attacks.any():
+        return []
+    king_piece_map_copy = pos.piece_map[king_piece].copy()
+    king_from_square = king_piece_map_copy.pop()
+    king_squares = get_squares_from_bitboard(king_attacks)
+    for to_square in king_squares:
+        move = Move(king_piece, (king_from_square, to_square))
+        move = evaluate_move(move, copy.deepcopy(pos))
+        if not move.is_illegal_move:
+            moves.append(move)
+    return moves
+
+
+def generate_queen_moves(pos: Position) -> list:
+    moves = []
+    queen_attacks = pos.queen_color_map[pos.color_to_move][0]
+    queen_piece = pos.queen_color_map[pos.color_to_move][1]
+    if not queen_attacks.any():
+        return []
+    current_queen_locations = pos.piece_map[queen_piece]
+    queen_squares = get_squares_from_bitboard(queen_attacks)
+    for queen_from_square in list(current_queen_locations):
+        for to_square in queen_squares:
+            move = Move(queen_piece, (queen_from_square, to_square))
+            move = evaluate_move(move, copy.deepcopy(pos))
+            if not move.is_illegal_move:
+                moves.append(move)
+    return moves
+
+
+def generate_pawn_moves(pos: Position) -> list:
+    moves = []
+    all_pawn_moves = pos.pawn_color_map[pos.color_to_move][0]
+    pawn_piece = pos.pawn_color_map[pos.color_to_move][1]
+    if not all_pawn_moves.any():
+        return []
+    current_pawn_locations = pos.piece_map[pawn_piece]
+    pawn_squares = get_squares_from_bitboard(all_pawn_moves)
+    for pawn_from_square in list(current_pawn_locations):
+        for to_square in pawn_squares:
+            move = Move(pawn_piece, (pawn_from_square, to_square))
+            move = evaluate_move(move, copy.deepcopy(pos))
+            if not move.is_illegal_move:
+                moves.append(move)
+    return moves
+
+
 def generate_all_legal_moves(position: Position):
-    legal_moves = []
-    king_moves = generate_king_moves(position)
-    queen_moves = generate_queen_moves(position)
-    pawn_moves = generate_pawn_moves(position)
-    rook_moves = generate_rook_moves(position)
+    moves = []
+    moves.extend(generate_rook_moves(position))
+    moves.extend(generate_knight_moves(position))
+    moves.extend(generate_bishop_moves(position))
+    moves.extend(generate_king_moves(position))
+    moves.extend(generate_queen_moves(position))
+    moves.extend(generate_pawn_moves(position))
+    return moves
