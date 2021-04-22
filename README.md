@@ -18,7 +18,7 @@ The current version of Wake is run using Python 3.x from the terminal.
 
 - `cd wake`
 
-- `python3 wake.py`
+- `python3 game.py`
 
 You will be presented with an output of the board in the shell:
 
