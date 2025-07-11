@@ -194,7 +194,11 @@ def generate_knight_attack_bb_from_square(from_square: int) -> np.uint64:
     """
     attack_bb = make_uint64()
     for i in [6, 15, 17, 10, -6, -15, -17, -10]:
-        attack_bb |= set_bit(attack_bb, from_square + i)
+        to_square = from_square + i
+        if not 0 <= to_square < 64:
+            continue
+
+        attack_bb |= set_bit(attack_bb, to_square)
         # Mask of wrapping
         if from_square in (File.B | File.A):
             attack_bb &= ~(np.uint64(File.hexG | File.hexH))
@@ -216,7 +220,10 @@ def get_south_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     """
     original_from_square = from_square
     for i in range(0, -64, -8):
-        bitboard |= set_bit(bitboard, from_square + i)
+        to_square = from_square + i
+        if not 0 <= to_square < 64:
+            continue
+        bitboard |= set_bit(bitboard, to_square)
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
@@ -230,7 +237,10 @@ def get_north_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     """
     original_from_square = from_square
     for i in range(0, 64, 8):
-        bitboard |= set_bit(bitboard, from_square + i)
+        to_square = from_square + i
+        if not 0 <= to_square < 64:
+            continue
+        bitboard |= set_bit(bitboard, to_square)
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
@@ -243,14 +253,12 @@ def get_west_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the western squares attacked on an otherwise empty board
     """
     original_from_square = from_square
-    if from_square % 8 == 0:
+    while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
+        if from_square % 8 == 0:
+            break
         from_square -= 1
-    else:
-        while not from_square % 8 == 0:
-            bitboard |= HOT << np.uint64(from_square)
-            from_square -= 1
-        bitboard |= HOT << np.uint64(from_square)
+
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
@@ -263,12 +271,12 @@ def get_east_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the eastern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
-    if not from_square % 8:
+    while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
+        if from_square % 8 == 0:
+            break
         from_square += 1
-    while not from_square % 8 == 0:
-        bitboard |= HOT << np.uint64(from_square)
-        from_square += 1
+
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
@@ -281,13 +289,12 @@ def get_southeast_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the northeastern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
-    if from_square % 8 == 0 and from_square not in File.H:
+    while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
+        if from_square % 8 == 0 or from_square in File.H:
+            break
         from_square -= 7
-    while not from_square % 8 == 0 and from_square not in File.H:
-        bitboard |= HOT << np.uint64(from_square)
-        from_square -= 7
-    bitboard |= HOT << np.uint64(from_square)
+
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
@@ -300,13 +307,12 @@ def get_northwest_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the northwestern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
-    if from_square % 8 == 0 and from_square not in File.A:
+    while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
+        if from_square % 8 == 0 or from_square in File.A:
+            break
         from_square += 7
-    while not from_square % 8 == 0 and from_square not in File.A:
-        bitboard |= HOT << np.uint64(from_square)
-        from_square += 7
-    bitboard |= HOT << np.uint64(from_square)
+
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
@@ -319,14 +325,12 @@ def get_southwest_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the southwestern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
-    if from_square % 8 == 0:
+    while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
+        if from_square % 8 == 0 or from_square in File.H:
+            break
         from_square -= 9
-    else:
-        while not from_square % 8 == 0:
-            bitboard |= HOT << np.uint64(from_square)
-            from_square -= 9
-        bitboard |= HOT << np.uint64(from_square)
+
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
@@ -339,12 +343,12 @@ def get_northeast_ray(bitboard, from_square):
     :return: np.uint64 bitboard of the northeastern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
-    if from_square % 8 == 0:
+    while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
+        if from_square % 8 == 0 or from_square in File.A:
+            break
         from_square += 9
-    while not from_square % 8 == 0:
-        bitboard |= HOT << np.uint64(from_square)
-        from_square += 9
+
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
@@ -432,20 +436,21 @@ def generate_queen_attack_bb_from_square(from_square: int) -> np.uint64:
 
 def generate_king_attack_bb_from_square(from_square: int) -> np.uint64:
     """
-    Returns the king attack bitboard on an otherwise empty board from the provided square
-    :param from_square: starting square from which to generate king attacks
-    :return: np.uint64 bitboard representation of king attacks on an otherwise empty board
+    Generates a static bitboard of squares attacked by a king from the provided `square`
+    :param from_square: square index of the king from which to generate attack squares bitboard
+    :return: np.uint64 bitboard of attacked squares by a king on the provided `square`
     """
     attack_bb = make_uint64()
-    for i in [8, -8]:
-        # North-South
-        attack_bb |= HOT << np.uint64(from_square + i)
-    for i in [1, 9, -7]:
-        # East (mask the A file)
-        attack_bb |= HOT << np.uint64(from_square + i) & ~np.uint64(File.hexA)
-    for i in [-1, -9, 7]:
-        # West (mask the H file)
-        attack_bb |= HOT << np.uint64(from_square + i) & ~np.uint64(File.hexH)
+    for i in [-1, -7, -8, -9, 1, 7, 8, 9]:
+        to_square = from_square + i
+        if not 0 <= to_square < 64:
+            continue
+        attack_bb |= HOT << np.uint64(to_square)
+    # Mask of wrapping
+    if from_square in File.A:
+        attack_bb &= ~np.uint64(File.hexH)
+    if from_square in File.H:
+        attack_bb &= ~np.uint64(File.hexA)
     return attack_bb
 
 
@@ -455,29 +460,41 @@ def generate_king_attack_bb_from_square(from_square: int) -> np.uint64:
 
 def generate_white_pawn_attack_bb_from_square(from_square: int) -> np.uint64:
     """
-    Returns the white pawn attack bitboard on an otherwise empty board from the provided square
-    :param from_square: starting square from which to generate white pawn attacks
-    :return: np.uint64 bitboard representation of white pawn attacks on an otherwise empty board
+    Generates a static bitboard of squares attacked by a white pawn from the provided `square`
+    :param from_square: square index of the white pawn from which to generate attack squares bitboard
+    :return: np.uint64 bitboard of attacked squares by a white pawn on the provided `square`
     """
     attack_bb = make_uint64()
-    # Northeast (mask the A file)
-    attack_bb |= HOT << np.uint64(from_square + 9) & ~np.uint64(File.hexA)
-    # Northwest (mask the H file)
-    attack_bb |= HOT << np.uint64(from_square + 7) & ~np.uint64(File.hexH)
+    for i in [7, 9]:
+        to_square = from_square + i
+        if not 0 <= to_square < 64:
+            continue
+        attack_bb |= HOT << np.uint64(to_square)
+    # Mask of wrapping
+    if from_square in File.A:
+        attack_bb &= ~np.uint64(File.hexH)
+    if from_square in File.H:
+        attack_bb &= ~np.uint64(File.hexA)
     return attack_bb
 
 
 def generate_black_pawn_attack_bb_from_square(from_square: int) -> np.uint64:
     """
-    Returns the black pawn attack bitboard on an otherwise empty board from the provided square
-    :param from_square: starting square from which to generate black pawn attacks
-    :return: np.uint64 bitboard representation of black pawn attacks on an otherwise empty board
+    Generates a static bitboard of squares attacked by a black pawn from the provided `square`
+    :param from_square: square index of the black pawn from which to generate attack squares bitboard
+    :return: np.uint64 bitboard of attacked squares by a black pawn on the provided `square`
     """
     attack_bb = make_uint64()
-    # Southeast (mask the A file)
-    attack_bb |= HOT << np.uint64(from_square - 9) & ~np.uint64(File.hexH)
-    # Southwest (mask the H file)
-    attack_bb |= HOT << np.uint64(from_square - 7) & ~np.uint64(File.hexA)
+    for i in [-7, -9]:
+        to_square = from_square + i
+        if not 0 <= to_square < 64:
+            continue
+        attack_bb |= HOT << np.uint64(to_square)
+    # Mask of wrapping
+    if from_square in File.A:
+        attack_bb &= ~np.uint64(File.hexH)
+    if from_square in File.H:
+        attack_bb &= ~np.uint64(File.hexA)
     return attack_bb
 
 
