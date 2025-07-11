@@ -405,8 +405,8 @@ class Position:
 
     def has_pawn_move(self, color_to_move):
         pawn_color_map = {
-            Color.WHITE: (self.white_pawn_attacks & self.white_pawn_moves, Piece.wK),
-            Color.BLACK: (self.black_pawn_attacks & self.black_pawn_moves, Piece.bK)
+            Color.WHITE: (self.white_pawn_attacks & self.white_pawn_moves, Piece.wP),
+            Color.BLACK: (self.black_pawn_attacks & self.black_pawn_moves, Piece.bP)
         }
 
         all_pawn_moves = pawn_color_map[color_to_move][0]
@@ -502,9 +502,9 @@ class Position:
                     self.castle_rights[Color.WHITE][1] = 0
             if move.piece == Piece.bR:
                 if move.from_sq == Square.H8:
-                    self.castle_rights[Color.WHITE][0] = 0
+                    self.castle_rights[Color.BLACK][0] = 0
                 if move.from_sq == Square.A8:
-                    self.castle_rights[Color.WHITE][1] = 0
+                    self.castle_rights[Color.BLACK][1] = 0
 
     def move_rooks_for_castling(self, move):
         rook_color_map = {
