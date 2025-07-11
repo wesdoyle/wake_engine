@@ -41,16 +41,17 @@ class Game:
         if self.mode == "uci":
             self.run_uci_mode()
 
-    def try_parse_move(self, move):
-        engine_input = self.parser.parse_input(move)
+    def try_parse_move(self, move_str):
+        engine_input = self.parser.parse_input(move_str)
         if not engine_input.is_valid:
-            return None
+            return None, f"Invalid move format: '{move_str}'. Use format like 'e2e4' or 'a7a8q'."
         if engine_input.is_move:
             move_piece = self.position.get_piece_on_square(engine_input.move.from_sq)
             if not move_piece:
-                return None
+                return None, f"No piece on square {move_str[:2]}."
             engine_input.move.piece = move_piece
-            return engine_input.move
+            return engine_input.move, None
+        return None, "Unknown error parsing move."
 
     def run_uci_mode(self):
         sentinel = False
@@ -63,14 +64,27 @@ class Game:
             if not self.queue.empty():
                 clear()
                 msg = self.queue.get().strip()
-                move = self.try_parse_move(msg)
+                move, error_msg = self.try_parse_move(msg)
 
                 if not move:
                     if msg == UciCommand.QUIT:
                         self.sys_queue.put("kill")
+                    else:
+                        # Invalid move - provide specific feedback and reset display
+                        print(error_msg)
+                        print("Please enter a valid move in UCI format (e.g., 'e2e4') or 'quit' to exit.")
+                        print()
+                        sentinel = False  # Reset to re-display the board
                     continue
 
                 move_result = self.position.make_move(move)
+
+                if move_result.is_illegal_move:
+                    print(f"Illegal move: {msg}")
+                    print("Please try a different move.")
+                    print()
+                    sentinel = False  # Reset to re-display the board
+                    continue
 
                 if move_result.is_checkmate:
                     print("Checkmate")
