@@ -813,7 +813,7 @@ class Position:
             if move.to_sq in {Square.G1, Square.C1}:
                 return True
         if move.from_sq == Square.E8:
-            if move.to_sq in {Square.G8, Square.E8}:
+            if move.to_sq in {Square.G8, Square.C8}:
                 return True
         return False
 
