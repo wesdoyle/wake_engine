@@ -16,6 +16,7 @@ from wake.bitboard_helpers import (
     get_west_ray,
     make_uint64,
     generate_king_attack_bb_from_square,
+    generate_knight_attack_bb_from_square,
     get_squares_from_bitboard,
     pprint_bb,
 )
@@ -240,7 +241,9 @@ class Position:
         if not self.is_move_legal(move):
             return self.make_illegal_move_result("Illegal move")
 
-        if move.is_capture:
+        # Automatically detect and handle captures
+        if move.is_capture or self.is_capture(move):
+            move.is_capture = True  # Set the flag for consistency
             self.halfmove_clock = 0
             self.remove_opponent_piece_from_square(move.to_sq)
 
@@ -331,13 +334,17 @@ class Position:
             self.mailbox[move.to_sq] = new_piece
             break
 
-    def generate_legal_moves(self, color_to_move=None) -> list:
+    def generate_legal_moves(self, color_to_move=None, validate=False) -> list:
         """
         Generate all legal moves for the given color.
         Returns a list of Move objects.
         """
         if color_to_move is None:
             color_to_move = self.color_to_move
+
+        # Only validate when explicitly requested (not during AI search for performance)
+        if validate:
+            self.validate_piece_map(fix_corruption=True)
 
         moves = []
 
@@ -468,55 +475,74 @@ class Position:
     # MOVE LEGALITY CHECKING
     # -------------------------------------------------------------
 
-    def is_legal_move(self, move: Move) -> bool:
+    def is_move_legal(self, move) -> bool:
         """
-        For a given move, returns True iff it is legal given the Position state
+        Complete move legality check with proper piece movement validation.
+        Uses incremental position updates instead of expensive deep copy.
+        """
+        # Basic validity checks first
+        if move.piece not in self.piece_map:
+            return False
+
+        if move.from_sq not in self.piece_map[move.piece]:
+            return False
+
+        # Don't capture own pieces
+        target_piece = None
+        for piece_type, squares in self.piece_map.items():
+            if move.to_sq in squares:
+                target_piece = piece_type
+                break
+
+        if target_piece is not None:
+            # Check if we're capturing our own piece
+            if move.color == Color.WHITE and target_piece in Piece.white_pieces:
+                return False
+            if move.color == Color.BLACK and target_piece in Piece.black_pieces:
+                return False
+
+        # CRITICAL FIX: Check piece-specific movement rules
+        # This was the missing piece causing illegal moves to be accepted
+        if not self.is_valid_piece_movement(move):
+            return False
+
+        # would this move leave our king in check?
+        return self.is_move_legal_with_king_check(move)
+
+    def is_valid_piece_movement(self, move) -> bool:
+        """
+        Check if a move follows the movement rules for the specific piece type.
+        This is the critical validation that was missing.
         """
         piece = move.piece
-
-        if self.is_capture(move):
-            move.is_capture = True
-
-        if piece in (Piece.wP, Piece.bP):
-            is_legal_pawn_move = self.is_legal_pawn_move(move)
-
-            if not is_legal_pawn_move:
-                return False
-
-            if self.is_promotion(move):
-                move.is_promotion = True
-                return True
-
-            en_passant_target = self.try_get_en_passant_target(move)
-
-            if en_passant_target:
-                self.en_passant_side = move.color
-                self.en_passant_target = int(en_passant_target)
-
-            if move.to_sq == self.en_passant_target:
-                self.is_en_passant_capture = True
-
-            return True
-
-        if piece in (Piece.wB, Piece.bB):
-            return self.is_legal_bishop_move(move)
-
-        if piece in (Piece.wR, Piece.bR):
+        
+        # Pawn moves
+        if piece in {Piece.wP, Piece.bP}:
+            return self.is_legal_pawn_move(move)
+        
+        # Rook moves
+        elif piece in {Piece.wR, Piece.bR}:
             return self.is_legal_rook_move(move)
-
-        if piece in (Piece.wN, Piece.bN):
+        
+        # Knight moves
+        elif piece in {Piece.wN, Piece.bN}:
             return self.is_legal_knight_move(move)
-
-        if piece in (Piece.wQ, Piece.bQ):
+        
+        # Bishop moves
+        elif piece in {Piece.wB, Piece.bB}:
+            return self.is_legal_bishop_move(move)
+        
+        # Queen moves
+        elif piece in {Piece.wQ, Piece.bQ}:
             return self.is_legal_queen_move(move)
-
-        if piece in (Piece.wK, Piece.bK):
-            is_legal_king_move = self.is_legal_king_move(move)
-            if not is_legal_king_move:
-                return False
-            if self.is_castling(move):
-                move.is_castling = True
-            return True
+        
+        # King moves
+        elif piece in {Piece.wK, Piece.bK}:
+            return self.is_legal_king_move(move)
+        
+        # Unknown piece type
+        else:
+            return False
 
     def try_get_en_passant_target(self, move):
         if move.piece not in {Piece.wP, Piece.bP}:
@@ -602,36 +628,114 @@ class Position:
     def is_legal_bishop_move(self, move: Move) -> bool:
         """
         Returns True iff the given bishop move is legal - i.e.
-        - the to move intersects with the bishop attack bitboard
+        - the move follows diagonal pattern
+        - the path is clear
         """
         current_square_bb = set_bit(make_uint64(), move.from_sq)
         if move.piece == Piece.wB:
             if not (self.board.white_B_bb & current_square_bb):
                 return False
-            if self.is_not_bishop_attack(move):
+            # Direct path checking for bishop moves
+            if not self.is_bishop_path_clear(move):
                 return False
             return True
         if move.piece == Piece.bB:
             if not (self.board.black_B_bb & current_square_bb):
                 return False
-            if self.is_not_bishop_attack(move):
+            # Direct path checking for bishop moves
+            if not self.is_bishop_path_clear(move):
                 return False
             return True
+
+    def is_bishop_path_clear(self, move):
+        """
+        Check if the path is clear for a bishop move.
+        Bishops can only move diagonally.
+        """
+        from_sq = move.from_sq
+        to_sq = move.to_sq
+        
+        # Calculate the direction of movement
+        from_row, from_col = from_sq // 8, from_sq % 8
+        to_row, to_col = to_sq // 8, to_sq % 8
+        
+        row_diff = to_row - from_row
+        col_diff = to_col - from_col
+        
+        # Check if it's a valid diagonal move
+        if abs(row_diff) != abs(col_diff) or row_diff == 0:
+            return False  # Not a diagonal move
+        
+        # Check if the path is clear
+        row_step = 1 if row_diff > 0 else -1
+        col_step = 1 if col_diff > 0 else -1
+        
+        steps = abs(row_diff)
+        for i in range(1, steps):
+            check_row = from_row + i * row_step
+            check_col = from_col + i * col_step
+            check_sq = check_row * 8 + check_col
+            if self.mailbox[check_sq] is not None:
+                return False  # Path blocked
+        
+        return True
 
     def is_legal_rook_move(self, move: Move) -> bool:
         current_square_bb = set_bit(make_uint64(), move.from_sq)
         if move.piece == Piece.wR:
             if not (self.board.white_R_bb & current_square_bb):
                 return False
-            if self.is_not_rook_attack(move):
+            # Direct path checking for rook moves
+            if not self.is_rook_path_clear(move):
                 return False
             return True
         if move.piece == Piece.bR:
             if not (self.board.black_R_bb & current_square_bb):
                 return False
-            if self.is_not_rook_attack(move):
+            # Direct path checking for rook moves
+            if not self.is_rook_path_clear(move):
                 return False
             return True
+
+    def is_rook_path_clear(self, move):
+        """
+        Check if the path is clear for a rook move.
+        Rooks can only move horizontally or vertically.
+        """
+        from_sq = move.from_sq
+        to_sq = move.to_sq
+        
+        # Calculate the direction of movement
+        from_row, from_col = from_sq // 8, from_sq % 8
+        to_row, to_col = to_sq // 8, to_sq % 8
+        
+        row_diff = to_row - from_row
+        col_diff = to_col - from_col
+        
+        # Check if it's a valid rook move (horizontal or vertical)
+        if row_diff != 0 and col_diff != 0:
+            return False  # Not a straight line move
+        
+        if row_diff == 0 and col_diff == 0:
+            return False  # Same square
+        
+        # Check if the path is clear
+        if row_diff == 0:
+            # Horizontal move
+            step = 1 if col_diff > 0 else -1
+            for col in range(from_col + step, to_col, step):
+                check_sq = from_row * 8 + col
+                if self.mailbox[check_sq] is not None:
+                    return False  # Path blocked
+        else:
+            # Vertical move
+            step = 1 if row_diff > 0 else -1
+            for row in range(from_row + step, to_row, step):
+                check_sq = row * 8 + from_col
+                if self.mailbox[check_sq] is not None:
+                    return False  # Path blocked
+        
+        return True
 
     def is_legal_knight_move(self, move):
         current_square_bb = set_bit(make_uint64(), move.from_sq)
@@ -653,15 +757,71 @@ class Position:
         if move.piece == Piece.wQ:
             if not (self.board.white_Q_bb & current_square_bb):
                 return False
-            if self.is_not_queen_attack(move):
+            # Direct path checking for queen moves
+            if not self.is_queen_path_clear(move):
                 return False
             return True
         if move.piece == Piece.bQ:
             if not (self.board.black_Q_bb & current_square_bb):
                 return False
-            if self.is_not_queen_attack(move):
+            # Direct path checking for queen moves
+            if not self.is_queen_path_clear(move):
                 return False
             return True
+
+    def is_queen_path_clear(self, move):
+        """
+        Check if the path is clear for a queen move.
+        Queens can move diagonally (like bishops) or straight (like rooks).
+        """
+        from_sq = move.from_sq
+        to_sq = move.to_sq
+        
+        # Calculate the direction of movement
+        from_row, from_col = from_sq // 8, from_sq % 8
+        to_row, to_col = to_sq // 8, to_sq % 8
+        
+        row_diff = to_row - from_row
+        col_diff = to_col - from_col
+        
+        # Check if it's a valid queen move (straight or diagonal)
+        if row_diff == 0 and col_diff == 0:
+            return False  # Same square
+        
+        # Determine if it's a straight or diagonal move
+        if row_diff == 0 or col_diff == 0:
+            # Straight move (rook-like)
+            if row_diff == 0:
+                # Horizontal move
+                step = 1 if col_diff > 0 else -1
+                for col in range(from_col + step, to_col, step):
+                    check_sq = from_row * 8 + col
+                    if self.mailbox[check_sq] is not None:
+                        return False  # Path blocked
+            else:
+                # Vertical move
+                step = 1 if row_diff > 0 else -1
+                for row in range(from_row + step, to_row, step):
+                    check_sq = row * 8 + from_col
+                    if self.mailbox[check_sq] is not None:
+                        return False  # Path blocked
+        elif abs(row_diff) == abs(col_diff):
+            # Diagonal move (bishop-like)
+            row_step = 1 if row_diff > 0 else -1
+            col_step = 1 if col_diff > 0 else -1
+            
+            steps = abs(row_diff)
+            for i in range(1, steps):
+                check_row = from_row + i * row_step
+                check_col = from_col + i * col_step
+                check_sq = check_row * 8 + check_col
+                if self.mailbox[check_sq] is not None:
+                    return False  # Path blocked
+        else:
+            # Invalid queen move (not straight or diagonal)
+            return False
+        
+        return True
 
     def is_legal_king_move(self, move):
         current_square_bb = set_bit(make_uint64(), move.from_sq)
@@ -765,6 +925,13 @@ class Position:
         pawn_locations = list(self.piece_map[pawn_piece])
 
         for from_square in pawn_locations:
+            # Skip invalid pawn squares silently (defensive programming)
+            if color_to_move == Color.WHITE:
+                if not (8 <= from_square <= 55 and from_square in self.board.white_pawn_motion_bbs):
+                    continue
+            else:
+                if not (8 <= from_square <= 55 and from_square in self.board.black_pawn_motion_bbs):
+                    continue
             # Get pawn moves from bitboards
             if color_to_move == Color.WHITE:
                 motion_bb = (
@@ -979,39 +1146,6 @@ class Position:
     # MOVE GENERATION HELPER METHODS
     # -------------------------------------------------------------
 
-    def is_move_legal(self, move) -> bool:
-        """
-        Fast move legality check with proper king-in-check validation.
-        Uses incremental position updates instead of expensive deep copy.
-        """
-        # Basic validity checks first
-        if move.piece not in self.piece_map:
-            return False
-
-        if move.from_sq not in self.piece_map[move.piece]:
-            return False
-
-        # Don't capture own pieces
-        target_piece = None
-        for piece_type, squares in self.piece_map.items():
-            if move.to_sq in squares:
-                target_piece = piece_type
-                break
-
-        if target_piece is not None:
-            # Check if we're capturing our own piece
-            if move.color == Color.WHITE and target_piece in Piece.white_pieces:
-                return False
-            if move.color == Color.BLACK and target_piece in Piece.black_pieces:
-                return False
-
-        # would this move leave our king in check?
-        return self.is_move_legal_with_king_check(move)
-
-    # -------------------------------------------------------------
-    # FAST MOVE VALIDATION WITH KING-IN-CHECK
-    # -------------------------------------------------------------
-
     def is_move_legal_with_king_check(self, move) -> bool:
         """
         Check if a move is legal by testing if it leaves the player's king in check.
@@ -1043,7 +1177,7 @@ class Position:
         }
 
         # check if this is a capture
-        if move.to_sq in self.mailbox and self.mailbox[move.to_sq] is not None:
+        if self.mailbox[move.to_sq] is not None:
             state["captured_piece"] = self.mailbox[move.to_sq]
             state["captured_square"] = move.to_sq
 
@@ -1051,46 +1185,72 @@ class Position:
 
     def make_move_fast(self, move):
         """Make a move with minimal position updates for validation"""
-        # remove piece from source square
-        self.piece_map[move.piece].remove(move.from_sq)
+        # Simple, robust approach - don't try to be too clever
+        
+        # Validate square indices
+        if not (0 <= move.from_sq < 64) or not (0 <= move.to_sq < 64):
+            raise ValueError(f"Invalid square indices: from_sq={move.from_sq}, to_sq={move.to_sq}")
+        
+        # Get the piece to move from move object (trust it)
+        piece_to_move = move.piece
+        
+        # Remove piece from source square in both piece_map and mailbox
+        if move.from_sq in self.piece_map[piece_to_move]:
+            self.piece_map[piece_to_move].remove(move.from_sq)
         self.mailbox[move.from_sq] = None
 
-        # captures
-        if move.to_sq in self.mailbox and self.mailbox[move.to_sq] is not None:
-            captured_piece = self.mailbox[move.to_sq]
-            self.piece_map[captured_piece].remove(move.to_sq)
+        # Handle captures - remove captured piece
+        captured_piece = self.mailbox[move.to_sq]
+        if captured_piece is not None:
+            if move.to_sq in self.piece_map[captured_piece]:
+                self.piece_map[captured_piece].remove(move.to_sq)
 
-        # place piece on destination square
-        self.piece_map[move.piece].add(move.to_sq)
-        self.mailbox[move.to_sq] = move.piece
+        # Place piece on destination square
+        self.piece_map[piece_to_move].add(move.to_sq)
+        self.mailbox[move.to_sq] = piece_to_move
 
-        # update bitboards
+        # Update bitboards
         self.board.update_position_bitboards(self.piece_map)
-        self.update_attack_bitboards()
-
-        self.evaluate_king_check()
+        
+        # Fast king-in-check evaluation
+        self.evaluate_king_check_fast()
 
     def unmake_move_fast(self, move, move_state):
         """Restore position state after fast move validation"""
-        # restore piece positions and mailbox
-        self.piece_map[move.piece].remove(move.to_sq)
-        self.piece_map[move.piece].add(move.from_sq)
+        # Simple, robust approach - use saved state to restore exactly
+        
+        # Validate square indices
+        if not (0 <= move.from_sq < 64) or not (0 <= move.to_sq < 64):
+            raise ValueError(f"Invalid square indices in unmake: from_sq={move.from_sq}, to_sq={move.to_sq}")
+            
+        # Get piece that was moved
+        moved_piece = move_state["moved_piece"]
+        
+        # Remove piece from destination square
+        if move.to_sq in self.piece_map[moved_piece]:
+            self.piece_map[moved_piece].remove(move.to_sq)
+        
+        # Restore piece to source square
+        self.piece_map[moved_piece].add(move.from_sq)
+        
+        # Restore mailbox exactly as it was
         self.mailbox[move.from_sq] = move_state["original_mailbox_from"]
         self.mailbox[move.to_sq] = move_state["original_mailbox_to"]
 
-        # restore captured piece, if any
+        # Restore captured piece if any
         if move_state["captured_piece"] is not None:
-            self.piece_map[move_state["captured_piece"]].add(
-                move_state["captured_square"]
-            )
+            captured_square = move_state["captured_square"]
+            if 0 <= captured_square < 64:
+                self.piece_map[move_state["captured_piece"]].add(captured_square)
 
+        # Restore other state
         self.king_in_check = move_state["king_check_state"]
         self.en_passant_target = move_state["en_passant_target"]
         self.halfmove_clock = move_state["halfmove_clock"]
         self.castle_rights = move_state["castle_rights"]
 
+        # Update bitboards
         self.board.update_position_bitboards(self.piece_map)
-        self.update_attack_bitboards()
 
     def is_king_in_check_fast(self, color) -> bool:
         """Fast check if king of given color is in check"""
@@ -1671,6 +1831,32 @@ class Position:
         else:
             self.king_in_check[1] = 0
 
+    def evaluate_king_check_fast(self):
+        """
+        Fast king-in-check evaluation without full attack bitboard updates.
+        Only checks if the king is currently under attack.
+        """
+        # Get king positions
+        white_king_squares = list(self.piece_map[Piece.wK])
+        black_king_squares = list(self.piece_map[Piece.bK])
+        
+        # Default to not in check
+        self.king_in_check = {Color.WHITE: False, Color.BLACK: False}
+        
+        # Check if white king is in check
+        if white_king_squares:
+            white_king_sq = white_king_squares[0]
+            self.king_in_check[Color.WHITE] = self.is_king_attacked_direct(
+                white_king_sq, Color.BLACK
+            )
+        
+        # Check if black king is in check  
+        if black_king_squares:
+            black_king_sq = black_king_squares[0]
+            self.king_in_check[Color.BLACK] = self.is_king_attacked_direct(
+                black_king_sq, Color.WHITE
+            )
+
     def make_move_result(self) -> MoveResult:
         move_result = MoveResult()
         move_result.fen = generate_fen(self)
@@ -1801,3 +1987,152 @@ class Position:
         if 0 <= from_sq < 64:
             return self.mailbox[from_sq]
         return None
+
+    def is_king_attacked_direct(self, king_square, attacking_color):
+        """
+        Direct king-in-check detection without expensive attack bitboard generation.
+        Scans from the king's position to find attacking pieces.
+        Much more efficient than full attack bitboard updates.
+        """
+        # 1. Check for pawn attacks
+        if attacking_color == Color.WHITE:
+            # White pawns attack diagonally upward (+7, +9)
+            pawn_attack_squares = []
+            if king_square - 7 >= 0 and (king_square - 7) % 8 != 7:  # Not H-file
+                pawn_attack_squares.append(king_square - 7)
+            if king_square - 9 >= 0 and (king_square - 9) % 8 != 0:  # Not A-file
+                pawn_attack_squares.append(king_square - 9)
+            
+            for pawn_sq in pawn_attack_squares:
+                if pawn_sq in self.piece_map[Piece.wP]:
+                    return True
+        else:
+            # Black pawns attack diagonally downward (-7, -9)
+            pawn_attack_squares = []
+            if king_square + 7 < 64 and (king_square + 7) % 8 != 0:  # Not A-file
+                pawn_attack_squares.append(king_square + 7)
+            if king_square + 9 < 64 and (king_square + 9) % 8 != 7:  # Not H-file
+                pawn_attack_squares.append(king_square + 9)
+            
+            for pawn_sq in pawn_attack_squares:
+                if pawn_sq in self.piece_map[Piece.bP]:
+                    return True
+        
+        # 2. Check for knight attacks
+        knight_piece = Piece.wN if attacking_color == Color.WHITE else Piece.bN
+        knight_offsets = [-17, -15, -10, -6, 6, 10, 15, 17]
+        
+        for offset in knight_offsets:
+            target_sq = king_square + offset
+            if 0 <= target_sq < 64:
+                # Check if knight move is valid (not wrapping around board)
+                king_file = king_square % 8
+                target_file = target_sq % 8
+                if abs(king_file - target_file) <= 2:  # Knight moves at most 2 files
+                    if target_sq in self.piece_map[knight_piece]:
+                        return True
+        
+        # 3. Check for sliding piece attacks (rook, bishop, queen)
+        rook_piece = Piece.wR if attacking_color == Color.WHITE else Piece.bR
+        bishop_piece = Piece.wB if attacking_color == Color.WHITE else Piece.bB
+        queen_piece = Piece.wQ if attacking_color == Color.WHITE else Piece.bQ
+        
+        # Check ranks and files for rook/queen attacks
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # N, S, W, E
+        for dr, dc in directions:
+            r, c = king_square // 8, king_square % 8
+            while True:
+                r += dr
+                c += dc
+                if not (0 <= r < 8 and 0 <= c < 8):
+                    break
+                sq = r * 8 + c
+                piece = self.mailbox[sq]
+                if piece is not None:
+                    if piece == rook_piece or piece == queen_piece:
+                        return True
+                    break  # Blocked by any piece
+        
+        # Check diagonals for bishop/queen attacks
+        directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # NW, NE, SW, SE
+        for dr, dc in directions:
+            r, c = king_square // 8, king_square % 8
+            while True:
+                r += dr
+                c += dc
+                if not (0 <= r < 8 and 0 <= c < 8):
+                    break
+                sq = r * 8 + c
+                piece = self.mailbox[sq]
+                if piece is not None:
+                    if piece == bishop_piece or piece == queen_piece:
+                        return True
+                    break  # Blocked by any piece
+        
+        # 4. Check for king attacks (for king vs king scenarios)
+        king_piece = Piece.wK if attacking_color == Color.WHITE else Piece.bK
+        king_offsets = [-9, -8, -7, -1, 1, 7, 8, 9]
+        
+        for offset in king_offsets:
+            target_sq = king_square + offset
+            if 0 <= target_sq < 64:
+                # Check if king move is valid (not wrapping around board)
+                king_file = king_square % 8
+                target_file = target_sq % 8
+                if abs(king_file - target_file) <= 1:  # King moves at most 1 file
+                    if target_sq in self.piece_map[king_piece]:
+                        return True
+        
+        return False
+
+    def validate_piece_map(self, fix_corruption=True):
+        """
+        Validate and optionally fix piece_map corruption.
+        Returns True if the piece_map was valid, False if corruption was found/fixed.
+        """
+        corruption_found = False
+        
+        for piece_type, squares in self.piece_map.items():
+            invalid_squares = []
+            
+            for square in squares:
+                # Check for invalid square indices
+                if not (0 <= square < 64):
+                    print(f"ERROR: Piece {piece_type} on invalid square {square}")
+                    invalid_squares.append(square)
+                    corruption_found = True
+                    continue
+                
+                # Check mailbox consistency
+                if self.mailbox[square] != piece_type:
+                    print(f"ERROR: Piece map says {piece_type} on {square}, but mailbox has {self.mailbox[square]}")
+                    if fix_corruption:
+                        # Fix by trusting the mailbox
+                        if self.mailbox[square] is not None:
+                            actual_piece = self.mailbox[square]
+                            if square not in self.piece_map[actual_piece]:
+                                self.piece_map[actual_piece].add(square)
+                        invalid_squares.append(square)
+                    corruption_found = True
+            
+            # Remove invalid squares
+            if fix_corruption:
+                for invalid_square in invalid_squares:
+                    self.piece_map[piece_type].discard(invalid_square)
+        
+        # Also check for orphaned pieces in mailbox
+        for square in range(64):
+            piece_in_mailbox = self.mailbox[square]
+            if piece_in_mailbox is not None:
+                if square not in self.piece_map[piece_in_mailbox]:
+                    print(f"ERROR: Mailbox has {piece_in_mailbox} on {square}, but piece_map doesn't")
+                    if fix_corruption:
+                        self.piece_map[piece_in_mailbox].add(square)
+                    corruption_found = True
+        
+        if corruption_found and fix_corruption:
+            print("Piece map corruption detected and fixed")
+            # Update bitboards after fixing corruption
+            self.board.update_position_bitboards(self.piece_map)
+        
+        return not corruption_found

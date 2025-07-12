@@ -232,6 +232,7 @@ def get_south_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the southern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
+    from_square = int(from_square)  # Ensure int to avoid overflow
     while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
         if from_square < 8:  # Can't go further south
@@ -249,6 +250,7 @@ def get_north_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the northern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
+    from_square = int(from_square)  # Ensure int to avoid overflow
     while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
         if from_square >= 56:  # Can't go further north (rank 8)
@@ -266,6 +268,7 @@ def get_west_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the western squares attacked on an otherwise empty board
     """
     original_from_square = from_square
+    from_square = int(from_square)  # Ensure int to avoid overflow
     while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
         if from_square % 8 == 0:
@@ -284,6 +287,7 @@ def get_east_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the eastern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
+    from_square = int(from_square)  # Ensure int to avoid overflow
     while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
         if from_square % 8 == 0:
@@ -302,6 +306,7 @@ def get_southeast_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the northeastern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
+    from_square = int(from_square)  # Ensure int to avoid overflow
     while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
         if from_square % 8 == 0 or from_square in File.H:
@@ -320,6 +325,7 @@ def get_northwest_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the northwestern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
+    from_square = int(from_square)  # Ensure int to avoid overflow
     while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
         if from_square % 8 == 0 or from_square in File.A:
@@ -338,6 +344,7 @@ def get_southwest_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the southwestern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
+    from_square = int(from_square)  # Ensure int to avoid overflow
     while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
         if from_square % 8 == 0 or from_square in File.H:
@@ -356,6 +363,7 @@ def get_northeast_ray(bitboard, from_square):
     :return: np.uint64 bitboard of the northeastern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
+    from_square = int(from_square)  # Ensure int to avoid overflow
     while 0 <= from_square < 64:
         bitboard |= HOT << np.uint64(from_square)
         if from_square % 8 == 0 or from_square in File.A:
