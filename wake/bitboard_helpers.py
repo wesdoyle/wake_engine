@@ -2,10 +2,18 @@ import string
 
 import numpy as np
 
-from wake.constants import File, HOT, Square, Rank, DARK_SQUARES, LIGHT_SQUARES, piece_to_glyph
+from wake.constants import (
+    File,
+    HOT,
+    Square,
+    Rank,
+    DARK_SQUARES,
+    LIGHT_SQUARES,
+    piece_to_glyph,
+)
 
 BOARD_SIZE = 8
-BOARD_SQUARES = BOARD_SIZE ** 2
+BOARD_SQUARES = BOARD_SIZE**2
 
 
 def make_uint64() -> np.uint64:
@@ -31,7 +39,7 @@ def get_binary_string(bitboard: np.uint64, board_squares: int = 64) -> str:
     :param board_squares: the number of squares in the bitboard
     :return: string representation of the provided n**2 (board_squares) bitboard
     """
-    return format(bitboard, 'b').zfill(board_squares)
+    return format(bitboard, "b").zfill(board_squares)
 
 
 def get_squares_from_bitboard(bitboard: np.uint64) -> list:
@@ -46,6 +54,7 @@ def get_squares_from_bitboard(bitboard: np.uint64) -> list:
 # -------------------------------------------------------------
 # BIT QUERYING
 # -------------------------------------------------------------
+
 
 def bitscan_forward(bitboard: np.uint64) -> int:
     """
@@ -106,6 +115,7 @@ def bitscan_reverse(bitboard: np.uint64) -> np.uint64 or int:
 # BIT MANIPULATION
 # -------------------------------------------------------------
 
+
 def set_bit(bitboard: np.uint64, bit: int) -> np.uint64:
     """
     Sets a bit in the provided unsigned 64-bit integer bitboard representation to 1
@@ -130,6 +140,7 @@ def clear_bit(bitboard: np.uint64, bit: int or np.uint64) -> np.uint64:
 # DEBUG PRETTY PRINT
 # -------------------------------------------------------------
 
+
 def pprint_bb(bitboard: np.uint64, board_size: int = 8) -> None:
     """
     Pretty-prints the given bitboard as 8 x 8 chess board
@@ -138,21 +149,21 @@ def pprint_bb(bitboard: np.uint64, board_size: int = 8) -> None:
     :return: None
     """
     bitboard = get_binary_string(bitboard)
-    val = ''
+    val = ""
     display_rank = board_size
-    board = [bitboard[i:i + 8] for i in range(0, len(bitboard), board_size)]
+    board = [bitboard[i : i + 8] for i in range(0, len(bitboard), board_size)]
     for i, row in enumerate(board):
-        val += f'{display_rank} '
+        val += f"{display_rank} "
         display_rank -= 1
         for square in reversed(row):
             if int(square):
-                val += ' ▓'
+                val += " ▓"
                 continue
-            val += ' ░'
-        val += '\n'
-    val += '  '
+            val += " ░"
+        val += "\n"
+    val += "  "
     for char in string.ascii_uppercase[:board_size]:
-        val += f' {char}'
+        val += f" {char}"
     print(val)
 
 
@@ -163,7 +174,7 @@ def pprint_pieces(piece_map: dict, board_size: int = 8) -> None:
     :param board_size: the length of the square board
     :return: None
     """
-    board = ['░'] * 64
+    board = ["░"] * 64
     for piece, squares in piece_map.items():
         for square in squares:
             board[square] = piece_to_glyph[piece]
@@ -171,20 +182,21 @@ def pprint_pieces(piece_map: dict, board_size: int = 8) -> None:
     board = np.reshape(board, (8, 8))
     display_rank = board_size
     for i, row in enumerate(reversed(board)):
-        res = f'{display_rank} '
+        res = f"{display_rank} "
         display_rank -= 1
         for glyph in row:
-            res += f' {glyph}'
+            res += f" {glyph}"
         print(res)
-    res = '  '
+    res = "  "
     for char in string.ascii_uppercase[:board_size]:
-        res += f' {char}'
+        res += f" {char}"
     print(res)
 
 
 # -------------------------------------------------------------
 #  ATTACK PATTERNS: KNIGHT
 # -------------------------------------------------------------
+
 
 def generate_knight_attack_bb_from_square(from_square: int) -> np.uint64:
     """
@@ -210,6 +222,7 @@ def generate_knight_attack_bb_from_square(from_square: int) -> np.uint64:
 # -------------------------------------------------------------
 #  SLIDING ATTACK PATTERNS
 # -------------------------------------------------------------
+
 
 def get_south_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     """
@@ -357,6 +370,7 @@ def get_northeast_ray(bitboard, from_square):
 #  ATTACK PATTERNS: ROOK
 # -------------------------------------------------------------
 
+
 def generate_rank_attack_bb_from_square(square: int) -> np.uint64:
     """
     Generates rank attacks from the provided square on an otherwise empty bitboard
@@ -389,12 +403,15 @@ def generate_rook_attack_bb_from_square(square: int) -> np.uint64:
     :param square: starting square from which to generate rook attacks
     :return: np.uint64 rook attacks bitboard from the provided square
     """
-    return generate_file_attack_bb_from_square(square) | generate_rank_attack_bb_from_square(square)
+    return generate_file_attack_bb_from_square(
+        square
+    ) | generate_rank_attack_bb_from_square(square)
 
 
 # -------------------------------------------------------------
 #  ATTACK PATTERNS: BISHOP
 # -------------------------------------------------------------
+
 
 def generate_diag_attack_bb_from_square(from_square: int) -> np.uint64:
     """
@@ -419,20 +436,24 @@ def generate_diag_attack_bb_from_square(from_square: int) -> np.uint64:
 #  ATTACK PATTERNS: QUEEN
 # -------------------------------------------------------------
 
+
 def generate_queen_attack_bb_from_square(from_square: int) -> np.uint64:
     """
     Returns the queen attack bitboard on an otherwise empty board from the provided square
     :param from_square: starting square from which to generate queen attacks
     :return: np.uint64 bitboard representation of queen attacks on an otherwise empty board
     """
-    return generate_diag_attack_bb_from_square(from_square) \
-           | generate_file_attack_bb_from_square(from_square) \
-           | generate_rank_attack_bb_from_square(from_square)
+    return (
+        generate_diag_attack_bb_from_square(from_square)
+        | generate_file_attack_bb_from_square(from_square)
+        | generate_rank_attack_bb_from_square(from_square)
+    )
 
 
 # -------------------------------------------------------------
 #  ATTACK PATTERNS: KING
 # -------------------------------------------------------------
+
 
 def generate_king_attack_bb_from_square(from_square: int) -> np.uint64:
     """
@@ -457,6 +478,7 @@ def generate_king_attack_bb_from_square(from_square: int) -> np.uint64:
 # -------------------------------------------------------------
 #  ATTACK PATTERNS: PAWN
 # -------------------------------------------------------------
+
 
 def generate_white_pawn_attack_bb_from_square(from_square: int) -> np.uint64:
     """
@@ -527,6 +549,7 @@ def generate_black_pawn_motion_bb_from_square(from_square: int) -> np.uint64:
 # -------------------------------------------------------------
 #  ATTACK PATTERN MAPS
 # -------------------------------------------------------------
+
 
 def make_knight_attack_bbs() -> dict:
     """
@@ -653,71 +676,94 @@ def make_black_pawn_motion_bbs() -> dict:
 #  BITBOARD ACCESS: BOARD REGIONS
 # -------------------------------------------------------------
 
-def rank_8_bb() -> np.uint64: return np.uint64(Rank.hex8)
+
+def rank_8_bb() -> np.uint64:
+    return np.uint64(Rank.hex8)
 
 
-def rank_7_bb() -> np.uint64: return np.uint64(Rank.hex7)
+def rank_7_bb() -> np.uint64:
+    return np.uint64(Rank.hex7)
 
 
-def rank_6_bb() -> np.uint64: return np.uint64(Rank.hex6)
+def rank_6_bb() -> np.uint64:
+    return np.uint64(Rank.hex6)
 
 
-def rank_5_bb() -> np.uint64: return np.uint64(Rank.hex5)
+def rank_5_bb() -> np.uint64:
+    return np.uint64(Rank.hex5)
 
 
-def rank_4_bb() -> np.uint64: return np.uint64(Rank.hex4)
+def rank_4_bb() -> np.uint64:
+    return np.uint64(Rank.hex4)
 
 
-def rank_3_bb() -> np.uint64: return np.uint64(Rank.hex3)
+def rank_3_bb() -> np.uint64:
+    return np.uint64(Rank.hex3)
 
 
-def rank_2_bb() -> np.uint64: return np.uint64(Rank.hex2)
+def rank_2_bb() -> np.uint64:
+    return np.uint64(Rank.hex2)
 
 
-def rank_1_bb() -> np.uint64: return np.uint64(Rank.hex1)
+def rank_1_bb() -> np.uint64:
+    return np.uint64(Rank.hex1)
 
 
-def file_h_bb() -> np.uint64: return np.uint64(File.hexH)
+def file_h_bb() -> np.uint64:
+    return np.uint64(File.hexH)
 
 
-def file_g_bb() -> np.uint64: return np.uint64(File.hexG)
+def file_g_bb() -> np.uint64:
+    return np.uint64(File.hexG)
 
 
-def file_f_bb() -> np.uint64: return np.uint64(File.hexF)
+def file_f_bb() -> np.uint64:
+    return np.uint64(File.hexF)
 
 
-def file_e_bb() -> np.uint64: return np.uint64(File.hexE)
+def file_e_bb() -> np.uint64:
+    return np.uint64(File.hexE)
 
 
-def file_d_bb() -> np.uint64: return np.uint64(File.hexD)
+def file_d_bb() -> np.uint64:
+    return np.uint64(File.hexD)
 
 
-def file_c_bb() -> np.uint64: return np.uint64(File.hexC)
+def file_c_bb() -> np.uint64:
+    return np.uint64(File.hexC)
 
 
-def file_b_bb() -> np.uint64: return np.uint64(File.hexB)
+def file_b_bb() -> np.uint64:
+    return np.uint64(File.hexB)
 
 
-def file_a_bb() -> np.uint64: return np.uint64(File.hexA)
+def file_a_bb() -> np.uint64:
+    return np.uint64(File.hexA)
 
 
-def dark_squares_bb() -> np.uint64: return np.uint64(DARK_SQUARES)
+def dark_squares_bb() -> np.uint64:
+    return np.uint64(DARK_SQUARES)
 
 
-def light_squares_bb() -> np.uint64: return np.uint64(LIGHT_SQUARES)
+def light_squares_bb() -> np.uint64:
+    return np.uint64(LIGHT_SQUARES)
 
 
 def center_squares_bb():
     return (file_e_bb() | file_d_bb()) & (rank_4_bb() | rank_5_bb())
 
 
-def flanks_bb(): return file_a_bb() | file_h_bb()
+def flanks_bb():
+    return file_a_bb() | file_h_bb()
 
 
-def center_files_bb(): return file_c_bb() | file_d_bb() | file_e_bb() | file_f_bb()
+def center_files_bb():
+    return file_c_bb() | file_d_bb() | file_e_bb() | file_f_bb()
 
 
-def kingside_bb(): return file_e_bb() | file_f_bb() | file_g_bb() | file_h_bb()
+def kingside_bb():
+    return file_e_bb() | file_f_bb() | file_g_bb() | file_h_bb()
 
 
-def queenside_bb(): return file_a_bb() | file_b_bb() | file_c_bb() | file_d_bb()
+def queenside_bb():
+    return file_a_bb() | file_b_bb() | file_c_bb() | file_d_bb()

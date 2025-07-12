@@ -1,8 +1,18 @@
 import numpy as np
 
-from wake.bitboard_helpers import make_uint64, set_bit, make_knight_attack_bbs, make_king_attack_bbs, \
-    make_white_pawn_attack_bbs, make_black_pawn_attack_bbs, make_diag_attack_bbs, \
-    make_rook_attack_bbs, make_white_pawn_motion_bbs, make_black_pawn_motion_bbs, make_queen_attack_bbs
+from wake.bitboard_helpers import (
+    make_uint64,
+    set_bit,
+    make_knight_attack_bbs,
+    make_king_attack_bbs,
+    make_white_pawn_attack_bbs,
+    make_black_pawn_attack_bbs,
+    make_diag_attack_bbs,
+    make_rook_attack_bbs,
+    make_white_pawn_motion_bbs,
+    make_black_pawn_motion_bbs,
+    make_queen_attack_bbs,
+)
 from wake.constants import Piece, Color, File
 
 
@@ -46,11 +56,25 @@ class Board:
 
     @property
     def white_pieces_bb(self):
-        return self.white_P_bb | self.white_R_bb | self.white_N_bb | self.white_B_bb | self.white_K_bb | self.white_Q_bb
+        return (
+            self.white_P_bb
+            | self.white_R_bb
+            | self.white_N_bb
+            | self.white_B_bb
+            | self.white_K_bb
+            | self.white_Q_bb
+        )
 
     @property
     def black_pieces_bb(self):
-        return self.black_P_bb | self.black_R_bb | self.black_N_bb | self.black_B_bb | self.black_K_bb | self.black_Q_bb
+        return (
+            self.black_P_bb
+            | self.black_R_bb
+            | self.black_N_bb
+            | self.black_B_bb
+            | self.black_K_bb
+            | self.black_Q_bb
+        )
 
     @property
     def empty_squares_bb(self):

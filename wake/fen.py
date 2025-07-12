@@ -20,49 +20,73 @@ def generate_fen(position) -> str:
     white_queen_bin = np.binary_repr(position.board.white_Q_bb, 64)
     white_king_bin = np.binary_repr(position.board.white_K_bb, 64)
 
-    black_pawn_squares = [i for i in range(len(black_pawn_bin)) if int(black_pawn_bin[i])]
-    black_rook_squares = [i for i in range(len(black_rook_bin)) if int(black_rook_bin[i])]
-    black_knight_squares = [i for i in range(len(black_knight_bin)) if int(black_knight_bin[i])]
-    black_bishop_squares = [i for i in range(len(black_bishop_bin)) if int(black_bishop_bin[i])]
-    black_queen_squares = [i for i in range(len(black_queen_bin)) if int(black_queen_bin[i])]
-    black_king_square = [i for i in range(len(black_king_bin)) if int(black_king_bin[i])]
-    white_pawn_squares = [i for i in range(len(white_pawn_bin)) if int(white_pawn_bin[i])]
-    white_rook_squares = [i for i in range(len(white_rook_bin)) if int(white_rook_bin[i])]
-    white_knight_squares = [i for i in range(len(white_knight_bin)) if int(white_knight_bin[i])]
-    white_bishop_squares = [i for i in range(len(white_bishop_bin)) if int(white_bishop_bin[i])]
-    white_queen_squares = [i for i in range(len(white_queen_bin)) if int(white_queen_bin[i])]
-    white_king_square = [i for i in range(len(white_king_bin)) if int(white_king_bin[i])]
+    black_pawn_squares = [
+        i for i in range(len(black_pawn_bin)) if int(black_pawn_bin[i])
+    ]
+    black_rook_squares = [
+        i for i in range(len(black_rook_bin)) if int(black_rook_bin[i])
+    ]
+    black_knight_squares = [
+        i for i in range(len(black_knight_bin)) if int(black_knight_bin[i])
+    ]
+    black_bishop_squares = [
+        i for i in range(len(black_bishop_bin)) if int(black_bishop_bin[i])
+    ]
+    black_queen_squares = [
+        i for i in range(len(black_queen_bin)) if int(black_queen_bin[i])
+    ]
+    black_king_square = [
+        i for i in range(len(black_king_bin)) if int(black_king_bin[i])
+    ]
+    white_pawn_squares = [
+        i for i in range(len(white_pawn_bin)) if int(white_pawn_bin[i])
+    ]
+    white_rook_squares = [
+        i for i in range(len(white_rook_bin)) if int(white_rook_bin[i])
+    ]
+    white_knight_squares = [
+        i for i in range(len(white_knight_bin)) if int(white_knight_bin[i])
+    ]
+    white_bishop_squares = [
+        i for i in range(len(white_bishop_bin)) if int(white_bishop_bin[i])
+    ]
+    white_queen_squares = [
+        i for i in range(len(white_queen_bin)) if int(white_queen_bin[i])
+    ]
+    white_king_square = [
+        i for i in range(len(white_king_bin)) if int(white_king_bin[i])
+    ]
 
     fen_dict = {i: None for i in range(64)}
 
     for s in black_pawn_squares:
-        fen_dict[s] = 'p'
+        fen_dict[s] = "p"
     for s in black_rook_squares:
-        fen_dict[s] = 'r'
+        fen_dict[s] = "r"
     for s in black_knight_squares:
-        fen_dict[s] = 'n'
+        fen_dict[s] = "n"
     for s in black_bishop_squares:
-        fen_dict[s] = 'b'
+        fen_dict[s] = "b"
     for s in black_queen_squares:
-        fen_dict[s] = 'q'
+        fen_dict[s] = "q"
     for s in black_king_square:
-        fen_dict[s] = 'k'
+        fen_dict[s] = "k"
     for s in white_pawn_squares:
-        fen_dict[s] = 'P'
+        fen_dict[s] = "P"
     for s in white_rook_squares:
-        fen_dict[s] = 'R'
+        fen_dict[s] = "R"
     for s in white_knight_squares:
-        fen_dict[s] = 'N'
+        fen_dict[s] = "N"
     for s in white_bishop_squares:
-        fen_dict[s] = 'B'
+        fen_dict[s] = "B"
     for s in white_queen_squares:
-        fen_dict[s] = 'Q'
+        fen_dict[s] = "Q"
     for s in white_king_square:
-        fen_dict[s] = 'K'
+        fen_dict[s] = "K"
 
-    fen = ''
+    fen = ""
     empty = 0
-    row = ''
+    row = ""
 
     for k, v in fen_dict.items():
         if not k % 8 and not k == 0:
@@ -70,7 +94,7 @@ def generate_fen(position) -> str:
                 row += str(empty)
                 empty = 0
             fen += row[::-1] + "/"
-            row = ''
+            row = ""
 
         if not v:
             empty += 1
@@ -83,10 +107,7 @@ def generate_fen(position) -> str:
         row += v
     fen += row[::-1]
 
-    side_to_move_map = {
-        Color.WHITE: 'w',
-        Color.BLACK: 'b'
-    }
+    side_to_move_map = {Color.WHITE: "w", Color.BLACK: "b"}
 
     fen += f" {side_to_move_map[position.color_to_move]}"
 
@@ -106,7 +127,12 @@ def generate_fen(position) -> str:
     if b_castle_queen:
         fen += "q"
 
-    if not w_castle_king and not w_castle_queen and not b_castle_king and not b_castle_queen:
+    if (
+        not w_castle_king
+        and not w_castle_queen
+        and not b_castle_king
+        and not b_castle_queen
+    ):
         fen += "-"
 
     fen += " "
