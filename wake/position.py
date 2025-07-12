@@ -42,7 +42,6 @@ from wake.move import Move, MoveResult
 # Unit tests
 # Push FEN to the Game stack
 # Should we generate the move from the board?
-# Stalemate
 # No checkmating pieces draw - KNK, KBK
 
 
@@ -260,6 +259,10 @@ class Position:
         if self.king_in_check[other_player] and not self.any_legal_moves(other_player):
             print("Checkmate")
             return self.make_checkmate_result()
+
+        if not self.king_in_check[other_player] and not self.any_legal_moves(other_player):
+            print("Stalemate")
+            return self.make_stalemate_result()
 
         self.color_to_move = not self.color_to_move
 
@@ -1307,6 +1310,12 @@ class Position:
     def make_checkmate_result(self) -> MoveResult:
         move_result = MoveResult()
         move_result.is_checkmate = True
+        move_result.fen = generate_fen(self)
+        return move_result
+
+    def make_stalemate_result(self) -> MoveResult:
+        move_result = MoveResult()
+        move_result.is_stalemate = True
         move_result.fen = generate_fen(self)
         return move_result
 
