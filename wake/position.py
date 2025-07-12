@@ -333,24 +333,31 @@ class Position:
             self.mailbox[move.to_sq] = new_piece
             break
 
+    def generate_legal_moves(self, color_to_move=None) -> list:
+        """
+        Generate all legal moves for the given color.
+        Returns a list of Move objects.
+        """
+        if color_to_move is None:
+            color_to_move = self.color_to_move
+
+        moves = []
+
+        moves.extend(self.generate_pawn_moves(color_to_move))
+        moves.extend(self.generate_rook_moves(color_to_move))
+        moves.extend(self.generate_knight_moves(color_to_move))
+        moves.extend(self.generate_bishop_moves(color_to_move))
+        moves.extend(self.generate_queen_moves(color_to_move))
+        moves.extend(self.generate_king_moves(color_to_move))
+
+        return moves
+
     def any_legal_moves(self, color_to_move):
         """
         Returns True if there are any legal moves
         """
-
-        if self.has_king_move(color_to_move):
-            return True
-        if self.has_rook_move(color_to_move):
-            return True
-        if self.has_queen_move(color_to_move):
-            return True
-        if self.has_knight_move(color_to_move):
-            return True
-        if self.has_bishop_move(color_to_move):
-            return True
-        if self.has_pawn_move(color_to_move):
-            return True
-        return False
+        legal_moves = self.generate_legal_moves(color_to_move)
+        return len(legal_moves) > 0
 
     def has_king_move(self, color_to_move):
         """
@@ -901,6 +908,383 @@ class Position:
             if not (self.black_rook_attacks & moving_to_square_bb):
                 return True
         return False
+
+    # -------------------------------------------------------------
+    # MOVE GENERATION BY PIECE TYPE
+    # -------------------------------------------------------------
+
+    def generate_pawn_moves(self, color_to_move) -> list:
+        """Generate all legal pawn moves for the given color"""
+        moves = []
+        pawn_piece = Piece.wP if color_to_move == Color.WHITE else Piece.bP
+
+        if pawn_piece not in self.piece_map or not self.piece_map[pawn_piece]:
+            return moves
+
+        pawn_locations = list(self.piece_map[pawn_piece])
+
+        for from_square in pawn_locations:
+            # Get pawn moves from bitboards
+            if color_to_move == Color.WHITE:
+                motion_bb = (
+                    self.board.white_pawn_motion_bbs[from_square]
+                    & self.board.empty_squares_bb
+                )
+                attack_bb = (
+                    self.board.white_pawn_attack_bbs[from_square]
+                    & self.board.black_pieces_bb
+                )
+            else:
+                motion_bb = (
+                    self.board.black_pawn_motion_bbs[from_square]
+                    & self.board.empty_squares_bb
+                )
+                attack_bb = (
+                    self.board.black_pawn_attack_bbs[from_square]
+                    & self.board.white_pieces_bb
+                )
+
+            # Add en passant targets to attack moves
+            if self.en_passant_target:
+                en_passant_bb = set_bit(make_uint64(), self.en_passant_target)
+                if color_to_move == Color.WHITE:
+                    attack_bb |= (
+                        self.board.white_pawn_attack_bbs[from_square] & en_passant_bb
+                    )
+                else:
+                    attack_bb |= (
+                        self.board.black_pawn_attack_bbs[from_square] & en_passant_bb
+                    )
+
+            # Convert motion bitboard to moves
+            motion_squares = get_squares_from_bitboard(motion_bb)
+            for to_square in motion_squares:
+                move = Move(pawn_piece, (from_square, to_square))
+                if self.is_move_legal(move):
+                    moves.append(move)
+
+            # Convert attack bitboard to moves
+            attack_squares = get_squares_from_bitboard(attack_bb)
+            for to_square in attack_squares:
+                move = Move(pawn_piece, (from_square, to_square))
+                move.is_capture = True
+                if self.is_move_legal(move):
+                    moves.append(move)
+
+        return moves
+
+    def generate_rook_moves(self, color_to_move) -> list:
+        """Generate all legal rook moves for the given color"""
+        moves = []
+        rook_piece = Piece.wR if color_to_move == Color.WHITE else Piece.bR
+
+        if rook_piece not in self.piece_map or not self.piece_map[rook_piece]:
+            return moves
+
+        rook_locations = list(self.piece_map[rook_piece])
+
+        for from_square in rook_locations:
+            # Generate rook attacks from this square
+            legal_moves_bb = self.get_rook_attacks_from_square(
+                from_square, color_to_move
+            )
+
+            # Convert bitboard to move list
+            to_squares = get_squares_from_bitboard(legal_moves_bb)
+            for to_square in to_squares:
+                move = Move(rook_piece, (from_square, to_square))
+                if self.is_capture_square(to_square, color_to_move):
+                    move.is_capture = True
+                if self.is_move_legal(move):
+                    moves.append(move)
+
+        return moves
+
+    def generate_knight_moves(self, color_to_move) -> list:
+        """Generate all legal knight moves for the given color"""
+        moves = []
+        knight_piece = Piece.wN if color_to_move == Color.WHITE else Piece.bN
+
+        if knight_piece not in self.piece_map or not self.piece_map[knight_piece]:
+            return moves
+
+        knight_locations = list(self.piece_map[knight_piece])
+
+        for from_square in knight_locations:
+            # Get knight attacks from precomputed table
+            knight_attacks = self.board.get_knight_attack_from(from_square)
+
+            # Remove own pieces
+            own_pieces = (
+                self.board.white_pieces_bb
+                if color_to_move == Color.WHITE
+                else self.board.black_pieces_bb
+            )
+            legal_moves_bb = knight_attacks & ~own_pieces
+
+            # Convert bitboard to move list
+            to_squares = get_squares_from_bitboard(legal_moves_bb)
+            for to_square in to_squares:
+                move = Move(knight_piece, (from_square, to_square))
+                if self.is_capture_square(to_square, color_to_move):
+                    move.is_capture = True
+                if self.is_move_legal(move):
+                    moves.append(move)
+
+        return moves
+
+    def generate_bishop_moves(self, color_to_move) -> list:
+        """Generate all legal bishop moves for the given color"""
+        moves = []
+        bishop_piece = Piece.wB if color_to_move == Color.WHITE else Piece.bB
+
+        if bishop_piece not in self.piece_map or not self.piece_map[bishop_piece]:
+            return moves
+
+        bishop_locations = list(self.piece_map[bishop_piece])
+
+        for from_square in bishop_locations:
+            # Generate bishop attacks from this square
+            legal_moves_bb = self.get_bishop_attacks_from_square(
+                from_square, color_to_move
+            )
+
+            # Convert bitboard to move list
+            to_squares = get_squares_from_bitboard(legal_moves_bb)
+            for to_square in to_squares:
+                move = Move(bishop_piece, (from_square, to_square))
+                if self.is_capture_square(to_square, color_to_move):
+                    move.is_capture = True
+                if self.is_move_legal(move):
+                    moves.append(move)
+
+        return moves
+
+    def generate_queen_moves(self, color_to_move) -> list:
+        """Generate all legal queen moves for the given color"""
+        moves = []
+        queen_piece = Piece.wQ if color_to_move == Color.WHITE else Piece.bQ
+
+        if queen_piece not in self.piece_map or not self.piece_map[queen_piece]:
+            return moves
+
+        queen_locations = list(self.piece_map[queen_piece])
+
+        for from_square in queen_locations:
+            # Queen moves = bishop moves + rook moves
+            rook_attacks = self.get_rook_attacks_from_square(from_square, color_to_move)
+            bishop_attacks = self.get_bishop_attacks_from_square(
+                from_square, color_to_move
+            )
+            legal_moves_bb = rook_attacks | bishop_attacks
+
+            # Convert bitboard to move list
+            to_squares = get_squares_from_bitboard(legal_moves_bb)
+            for to_square in to_squares:
+                move = Move(queen_piece, (from_square, to_square))
+                if self.is_capture_square(to_square, color_to_move):
+                    move.is_capture = True
+                if self.is_move_legal(move):
+                    moves.append(move)
+
+        return moves
+
+    def generate_king_moves(self, color_to_move) -> list:
+        """Generate all legal king moves for the given color"""
+        moves = []
+        king_piece = Piece.wK if color_to_move == Color.WHITE else Piece.bK
+
+        if king_piece not in self.piece_map or not self.piece_map[king_piece]:
+            return moves
+
+        king_locations = list(self.piece_map[king_piece])
+        if not king_locations:
+            return moves
+
+        from_square = king_locations[0]  # There's only one king
+
+        # Get king attacks from precomputed table
+        king_attacks = generate_king_attack_bb_from_square(from_square)
+
+        # Remove own pieces
+        own_pieces = (
+            self.board.white_pieces_bb
+            if color_to_move == Color.WHITE
+            else self.board.black_pieces_bb
+        )
+        legal_moves_bb = king_attacks & ~own_pieces
+
+        # Add castling moves
+        can_castle = self.can_castle(color_to_move)
+        if can_castle[0] or can_castle[1]:
+            legal_moves_bb |= self.add_castling_moves(
+                legal_moves_bb, can_castle, color_to_move
+            )
+
+        # Convert bitboard to move list
+        to_squares = get_squares_from_bitboard(legal_moves_bb)
+        for to_square in to_squares:
+            move = Move(king_piece, (from_square, to_square))
+            if self.is_capture_square(to_square, color_to_move):
+                move.is_capture = True
+            if self.is_castling(move):
+                move.is_castling = True
+            if self.is_move_legal(move):
+                moves.append(move)
+
+        return moves
+
+    # -------------------------------------------------------------
+    # MOVE GENERATION HELPER METHODS
+    # -------------------------------------------------------------
+
+    def is_move_legal(self, move) -> bool:
+        if move.piece not in self.piece_map:
+            return False
+
+        if move.from_sq not in self.piece_map[move.piece]:
+            return False
+
+        # Don't capture own pieces
+        target_piece = None
+        for piece_type, squares in self.piece_map.items():
+            if move.to_sq in squares:
+                target_piece = piece_type
+                break
+
+        if target_piece is not None:
+            # Check if we're capturing our own piece
+            if move.color == Color.WHITE and target_piece in Piece.white_pieces:
+                return False
+            if move.color == Color.BLACK and target_piece in Piece.black_pieces:
+                return False
+
+        # For now, accept all other moves (we'll add king-in-check validation later)
+        return True
+
+    def get_rook_attacks_from_square(self, from_square, color_to_move):
+        """Generate rook attacks from a specific square"""
+        bitboard = make_uint64()
+        occupied = self.board.occupied_squares_bb
+
+        north_ray = get_north_ray(bitboard, from_square)
+        intersection = occupied & north_ray
+        if intersection:
+            first_blocker = bitscan_forward(intersection)
+            block_ray = get_north_ray(bitboard, first_blocker)
+            north_ray ^= block_ray
+
+        east_ray = get_east_ray(bitboard, from_square)
+        intersection = occupied & east_ray
+        if intersection:
+            first_blocker = bitscan_forward(intersection)
+            block_ray = get_east_ray(bitboard, first_blocker)
+            east_ray ^= block_ray
+
+        south_ray = get_south_ray(bitboard, from_square)
+        intersection = occupied & south_ray
+        if intersection:
+            first_blocker = bitscan_reverse(intersection)
+            block_ray = get_south_ray(bitboard, first_blocker)
+            south_ray ^= block_ray
+
+        west_ray = get_west_ray(bitboard, from_square)
+        intersection = occupied & west_ray
+        if intersection:
+            first_blocker = bitscan_reverse(intersection)
+            block_ray = get_west_ray(bitboard, first_blocker)
+            west_ray ^= block_ray
+
+        legal_moves = north_ray | east_ray | south_ray | west_ray
+
+        # Remove own piece targets
+        own_piece_targets = self.occupied_squares_by_color[color_to_move]
+        if own_piece_targets.any():
+            legal_moves &= ~own_piece_targets
+
+        return legal_moves
+
+    def get_bishop_attacks_from_square(self, from_square, color_to_move):
+        """Generate bishop attacks from a specific square"""
+        bitboard = make_uint64()
+        occupied = self.board.occupied_squares_bb
+
+        northwest_ray = get_northwest_ray(bitboard, from_square)
+        intersection = occupied & northwest_ray
+        if intersection:
+            first_blocker = bitscan_forward(intersection)
+            block_ray = get_northwest_ray(bitboard, first_blocker)
+            northwest_ray ^= block_ray
+
+        northeast_ray = get_northeast_ray(bitboard, from_square)
+        intersection = occupied & northeast_ray
+        if intersection:
+            first_blocker = bitscan_forward(intersection)
+            block_ray = get_northeast_ray(bitboard, first_blocker)
+            northeast_ray ^= block_ray
+
+        southwest_ray = get_southwest_ray(bitboard, from_square)
+        intersection = occupied & southwest_ray
+        if intersection:
+            first_blocker = bitscan_reverse(intersection)
+            block_ray = get_southwest_ray(bitboard, first_blocker)
+            southwest_ray ^= block_ray
+
+        southeast_ray = get_southeast_ray(bitboard, from_square)
+        intersection = occupied & southeast_ray
+        if intersection:
+            first_blocker = bitscan_reverse(intersection)
+            block_ray = get_southeast_ray(bitboard, first_blocker)
+            southeast_ray ^= block_ray
+
+        legal_moves = northwest_ray | northeast_ray | southwest_ray | southeast_ray
+
+        # Remove own piece targets
+        own_piece_targets = self.occupied_squares_by_color[color_to_move]
+        if own_piece_targets.any():
+            legal_moves &= ~own_piece_targets
+
+        return legal_moves
+
+    def is_capture_square(self, to_square, color_to_move) -> bool:
+        """Check if moving to this square would be a capture"""
+        target_bb = set_bit(make_uint64(), to_square)
+
+        if color_to_move == Color.WHITE:
+            return bool(target_bb & self.board.black_pieces_bb)
+        else:
+            return bool(target_bb & self.board.white_pieces_bb)
+
+    def test_move_generation(self):
+        """Test method to verify move generation is working"""
+        print(f"\n=== Testing Move Generation for {self.color_to_move} ===")
+        moves = self.generate_legal_moves()
+        print(f"Generated {len(moves)} legal moves:")
+
+        for i, move in enumerate(moves):
+            piece_name = {
+                Piece.wP: "wP",
+                Piece.bP: "bP",
+                Piece.wR: "wR",
+                Piece.bR: "bR",
+                Piece.wN: "wN",
+                Piece.bN: "bN",
+                Piece.wB: "wB",
+                Piece.bB: "bB",
+                Piece.wQ: "wQ",
+                Piece.bQ: "bQ",
+                Piece.wK: "wK",
+                Piece.bK: "bK",
+            }.get(move.piece, "Unknown")
+
+            capture_str = " (capture)" if move.is_capture else ""
+            castling_str = " (castling)" if move.is_castling else ""
+
+            print(
+                f"{i+1:2}. {piece_name}: {move.from_sq} -> {move.to_sq}{capture_str}{castling_str}"
+            )
+
+        return moves
 
     @staticmethod
     def is_castling(move):
