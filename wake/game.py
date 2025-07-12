@@ -14,10 +14,10 @@ CURRENT_VERSION = "0.1.0"
 
 def clear():
     # Windows
-    if name == 'nt':
-        _ = system('cls')
+    if name == "nt":
+        _ = system("cls")
     else:
-        _ = system('clear')
+        _ = system("clear")
 
 
 class Game:
@@ -44,7 +44,10 @@ class Game:
     def try_parse_move(self, move_str):
         engine_input = self.parser.parse_input(move_str)
         if not engine_input.is_valid:
-            return None, f"Invalid move format: '{move_str}'. Use format like 'e2e4' or 'a7a8q'."
+            return (
+                None,
+                f"Invalid move format: '{move_str}'. Use format like 'e2e4' or 'a7a8q'.",
+            )
         if engine_input.is_move:
             move_piece = self.position.get_piece_on_square(engine_input.move.from_sq)
             if not move_piece:
@@ -57,7 +60,9 @@ class Game:
         sentinel = False
         while True:
             if not sentinel:
-                print(f"Wake Engine [{CURRENT_VERSION}] running using interface mode: [{self.mode}]")
+                print(
+                    f"Wake Engine [{CURRENT_VERSION}] running using interface mode: [{self.mode}]"
+                )
                 print(f"{self.color_to_move[self.position.color_to_move]} to move:")
                 sentinel = True
                 pprint_pieces(self.position.piece_map)
@@ -72,7 +77,9 @@ class Game:
                     else:
                         # Invalid move - provide specific feedback and reset display
                         print(error_msg)
-                        print("Please enter a valid move in UCI format (e.g., 'e2e4') or 'quit' to exit.")
+                        print(
+                            "Please enter a valid move in UCI format (e.g., 'e2e4') or 'quit' to exit."
+                        )
                         print()
                         sentinel = False  # Reset to re-display the board
                     continue
@@ -132,7 +139,7 @@ if __name__ == "__main__":
 
     while True:
         message = sys_queue.get()
-        if message == 'kill':
+        if message == "kill":
             engine_process.terminate()
             reader_process.terminate()
             time.sleep(0.5)

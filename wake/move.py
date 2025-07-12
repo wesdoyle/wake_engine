@@ -31,10 +31,11 @@ class MoveResult:
     """
     Represents the positional outcome of a move
     """
+
     def __init__(self):
         self.is_checkmate = False
         self.is_king_in_check = False
         self.is_stalemate = False
         self.is_draw_claim_allowed = False
         self.is_illegal_move = False
-        self.fen = ''
+        self.fen = ""
