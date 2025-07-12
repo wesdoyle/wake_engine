@@ -231,13 +231,13 @@ class Position:
     # -------------------------------------------------------------
 
     def make_move(self, move) -> MoveResult:
-
-        original_position = PositionState(copy.deepcopy(self.__dict__))
-
+        """
+        Make a move permanently on the position.
+        Uses optimized validation without expensive deep copying.
+        """
         if not self.color_to_move == move.color:
             return self.make_illegal_move_result("Not your move!")
-
-        if not self.is_legal_move(move):
+        if not self.is_move_legal(move):
             return self.make_illegal_move_result("Illegal move")
 
         if move.is_capture:
@@ -278,21 +278,19 @@ class Position:
         if self.en_passant_side != move.color:
             self.en_passant_target = None
 
+        # Update position state
         self.board.update_position_bitboards(self.piece_map)
         self.update_attack_bitboards()
-
         self.evaluate_king_check()
-
-        if self.king_in_check[move.color]:
-            self.reset_state_to(original_position)
-            return self.make_illegal_move_result("own king in check")
 
         other_player = not move.color
 
+        # Check for checkmate
         if self.king_in_check[other_player] and not self.any_legal_moves(other_player):
             print("Checkmate")
             return self.make_checkmate_result()
 
+        # Check for stalemate
         if not self.king_in_check[other_player] and not self.any_legal_moves(
             other_player
         ):
@@ -358,163 +356,6 @@ class Position:
         """
         legal_moves = self.generate_legal_moves(color_to_move)
         return len(legal_moves) > 0
-
-    def has_king_move(self, color_to_move):
-        """
-        Returns True if there is a legal king move for the given color from the given square
-        in the current Position instance
-        """
-        king_color_map = {
-            Color.WHITE: (self.white_king_attacks, Piece.wK),
-            Color.BLACK: (self.black_king_attacks, Piece.bK),
-        }
-
-        attacked_squares = {
-            Color.WHITE: self.white_attacked_squares,
-            Color.BLACK: self.black_attacked_squares,
-        }
-
-        king_attacks = (
-            king_color_map[color_to_move][0] & ~attacked_squares[not color_to_move]
-        )
-        king_piece = king_color_map[color_to_move][1]
-
-        # if no attacks, return False
-        if not king_attacks.any():
-            return False
-
-        king_piece_map_copy = self.piece_map[king_piece].copy()
-        king_from_square = king_piece_map_copy.pop()
-
-        king_squares = get_squares_from_bitboard(king_attacks)
-
-        for to_square in king_squares:
-            move = Move(king_piece, (king_from_square, to_square))
-            move = evaluate_move(move, copy.deepcopy(self))
-            if not move.is_illegal_move:
-                return True
-
-        return False
-
-    def has_rook_move(self, color_to_move):
-        rook_color_map = {
-            Color.WHITE: (self.white_rook_attacks, Piece.wR),
-            Color.BLACK: (self.black_rook_attacks, Piece.bR),
-        }
-
-        rook_attacks = rook_color_map[color_to_move][0]
-        rook_piece = rook_color_map[color_to_move][1]
-
-        # if no attacks, return False
-        if not rook_attacks.any():
-            return False
-
-        current_rook_locations = self.piece_map[rook_piece]
-        rook_attack_squares = get_squares_from_bitboard(rook_attacks)
-
-        for rook_from_square in list(current_rook_locations):
-            for to_square in rook_attack_squares:
-                move = Move(rook_piece, (rook_from_square, to_square))
-                move = evaluate_move(move, copy.deepcopy(self))
-                if not move.is_illegal_move:
-                    return True
-        return False
-
-    def has_queen_move(self, color_to_move):
-        queen_color_map = {
-            Color.WHITE: (self.white_queen_attacks, Piece.wQ),
-            Color.BLACK: (self.black_queen_attacks, Piece.bQ),
-        }
-
-        queen_attacks = queen_color_map[color_to_move][0]
-        queen_piece = queen_color_map[color_to_move][1]
-
-        # if no attacks, return False
-        if not queen_attacks.any():
-            return False
-
-        current_queen_locations = self.piece_map[queen_piece]
-        queen_squares = get_squares_from_bitboard(queen_attacks)
-
-        for queen_from_square in list(current_queen_locations):
-            for to_square in queen_squares:
-                move = Move(queen_piece, (queen_from_square, to_square))
-                move = evaluate_move(move, copy.deepcopy(self))
-                if not move.is_illegal_move:
-                    return True
-        return False
-
-    def has_knight_move(self, color_to_move):
-        knight_color_map = {
-            Color.WHITE: (self.white_knight_attacks, Piece.wN),
-            Color.BLACK: (self.black_knight_attacks, Piece.bN),
-        }
-
-        knight_attacks = knight_color_map[color_to_move][0]
-        knight_piece = knight_color_map[color_to_move][1]
-
-        # if no attacks, return False
-        if not knight_attacks.any():
-            return False
-
-        current_knight_locations = list(self.piece_map[knight_piece])
-        knight_squares = get_squares_from_bitboard(knight_attacks)
-
-        for knight_from_square in current_knight_locations:
-            for to_square in knight_squares:
-                move = Move(knight_piece, (knight_from_square, to_square))
-                move = evaluate_move(move, copy.deepcopy(self))
-                if not move.is_illegal_move:
-                    return True
-        return False
-
-    def has_bishop_move(self, color_to_move):
-        bishop_color_map = {
-            Color.WHITE: (self.white_bishop_attacks, Piece.wB),
-            Color.BLACK: (self.black_bishop_attacks, Piece.bB),
-        }
-
-        bishop_attacks = bishop_color_map[color_to_move][0]
-        bishop_piece = bishop_color_map[color_to_move][1]
-
-        # if no attacks, return False
-        if not bishop_attacks.any():
-            return False
-
-        current_bishop_locations = list(self.piece_map[bishop_piece])
-        bishop_squares = get_squares_from_bitboard(bishop_attacks)
-
-        for bishop_from_square in current_bishop_locations:
-            for to_square in bishop_squares:
-                move = Move(bishop_piece, (bishop_from_square, to_square))
-                move = evaluate_move(move, copy.deepcopy(self))
-                if not move.is_illegal_move:
-                    return True
-        return False
-
-    def has_pawn_move(self, color_to_move):
-        pawn_color_map = {
-            Color.WHITE: (self.white_pawn_attacks & self.white_pawn_moves, Piece.wP),
-            Color.BLACK: (self.black_pawn_attacks & self.black_pawn_moves, Piece.bP),
-        }
-
-        all_pawn_moves = pawn_color_map[color_to_move][0]
-        pawn_piece = pawn_color_map[color_to_move][1]
-
-        # if no attacks, return False
-        if not all_pawn_moves.any():
-            return False
-
-        current_pawn_locations = self.piece_map[pawn_piece]
-        pawn_squares = get_squares_from_bitboard(all_pawn_moves)
-
-        for pawn_from_square in list(current_pawn_locations):
-            for to_square in pawn_squares:
-                move = Move(pawn_piece, (pawn_from_square, to_square))
-                move = evaluate_move(move, copy.deepcopy(self))
-                if not move.is_illegal_move:
-                    return True
-        return False
 
     def remove_opponent_piece_from_square(self, to_sq):
         target = self.mailbox[to_sq]
@@ -1139,6 +980,11 @@ class Position:
     # -------------------------------------------------------------
 
     def is_move_legal(self, move) -> bool:
+        """
+        Fast move legality check with proper king-in-check validation.
+        Uses incremental position updates instead of expensive deep copy.
+        """
+        # Basic validity checks first
         if move.piece not in self.piece_map:
             return False
 
@@ -1159,8 +1005,96 @@ class Position:
             if move.color == Color.BLACK and target_piece in Piece.black_pieces:
                 return False
 
-        # For now, accept all other moves (we'll add king-in-check validation later)
-        return True
+        # would this move leave our king in check?
+        return self.is_move_legal_with_king_check(move)
+
+    # -------------------------------------------------------------
+    # FAST MOVE VALIDATION WITH KING-IN-CHECK
+    # -------------------------------------------------------------
+
+    def is_move_legal_with_king_check(self, move) -> bool:
+        """
+        Check if a move is legal by testing if it leaves the player's king in check.
+        Uses fast incremental position updates instead of expensive deep copy.
+        """
+        move_state = self.save_move_state(move)
+        self.make_move_fast(move)
+        is_legal = not self.is_king_in_check_fast(move.color)
+        self.unmake_move_fast(move, move_state)
+        return is_legal
+
+    def save_move_state(self, move):
+        """Save minimal state needed to undo a move efficiently"""
+        state = {
+            "captured_piece": None,
+            "captured_square": None,
+            "moved_piece": move.piece,
+            "from_square": move.from_sq,
+            "to_square": move.to_sq,
+            "original_mailbox_to": self.mailbox[move.to_sq],
+            "original_mailbox_from": self.mailbox[move.from_sq],
+            "king_check_state": self.king_in_check.copy(),
+            "en_passant_target": self.en_passant_target,
+            "halfmove_clock": self.halfmove_clock,
+            "castle_rights": {
+                Color.WHITE: self.castle_rights[Color.WHITE].copy(),
+                Color.BLACK: self.castle_rights[Color.BLACK].copy(),
+            },
+        }
+
+        # check if this is a capture
+        if move.to_sq in self.mailbox and self.mailbox[move.to_sq] is not None:
+            state["captured_piece"] = self.mailbox[move.to_sq]
+            state["captured_square"] = move.to_sq
+
+        return state
+
+    def make_move_fast(self, move):
+        """Make a move with minimal position updates for validation"""
+        # remove piece from source square
+        self.piece_map[move.piece].remove(move.from_sq)
+        self.mailbox[move.from_sq] = None
+
+        # captures
+        if move.to_sq in self.mailbox and self.mailbox[move.to_sq] is not None:
+            captured_piece = self.mailbox[move.to_sq]
+            self.piece_map[captured_piece].remove(move.to_sq)
+
+        # place piece on destination square
+        self.piece_map[move.piece].add(move.to_sq)
+        self.mailbox[move.to_sq] = move.piece
+
+        # update bitboards
+        self.board.update_position_bitboards(self.piece_map)
+        self.update_attack_bitboards()
+
+        self.evaluate_king_check()
+
+    def unmake_move_fast(self, move, move_state):
+        """Restore position state after fast move validation"""
+        # restore piece positions and mailbox
+        self.piece_map[move.piece].remove(move.to_sq)
+        self.piece_map[move.piece].add(move.from_sq)
+        self.mailbox[move.from_sq] = move_state["original_mailbox_from"]
+        self.mailbox[move.to_sq] = move_state["original_mailbox_to"]
+
+        # restore captured piece, if any
+        if move_state["captured_piece"] is not None:
+            self.piece_map[move_state["captured_piece"]].add(
+                move_state["captured_square"]
+            )
+
+        self.king_in_check = move_state["king_check_state"]
+        self.en_passant_target = move_state["en_passant_target"]
+        self.halfmove_clock = move_state["halfmove_clock"]
+        self.castle_rights = move_state["castle_rights"]
+
+        self.board.update_position_bitboards(self.piece_map)
+        self.update_attack_bitboards()
+
+    def is_king_in_check_fast(self, color) -> bool:
+        """Fast check if king of given color is in check"""
+        return bool(self.king_in_check[color])
 
     def get_rook_attacks_from_square(self, from_square, color_to_move):
         """Generate rook attacks from a specific square"""
@@ -1867,58 +1801,3 @@ class Position:
         if 0 <= from_sq < 64:
             return self.mailbox[from_sq]
         return None
-
-
-def evaluate_move(move, position: Position) -> MoveResult:
-    """
-    Evaluates if a move is fully legal
-    """
-
-    if not position.is_legal_move(move):
-        return position.make_illegal_move_result("Illegal move")
-
-    if move.is_capture:
-        position.halfmove_clock = 0
-        position.remove_opponent_piece_from_square(move.to_sq)
-
-    if position.is_en_passant_capture:
-        if position.color_to_move == Color.WHITE:
-            position.remove_opponent_piece_from_square(move.to_sq - 8)
-        if position.color_to_move == Color.BLACK:
-            position.remove_opponent_piece_from_square(move.to_sq + 8)
-
-    position.is_en_passant_capture = False
-
-    if move.piece in {Piece.wP, Piece.bP}:
-        position.halfmove_clock = 0
-    # update both piece_map and mailbox
-    position.piece_map[move.piece].remove(move.from_sq)
-    position.piece_map[move.piece].add(move.to_sq)
-    position.mailbox[move.from_sq] = None
-    position.mailbox[move.to_sq] = move.piece
-
-    if move.is_promotion:
-        position.promote_pawn(move)
-
-    if move.is_castling:
-        position.move_rooks_for_castling(move)
-
-    position.halfmove_clock += 1
-    position.halfmove += 1
-
-    castle_rights = position.castle_rights[position.color_to_move]
-
-    if castle_rights[0] or castle_rights[1]:
-        position.adjust_castling_rights(move)
-
-    if position.en_passant_side != position.color_to_move:
-        position.en_passant_target = None
-
-    position.board.update_position_bitboards(position.piece_map)
-    position.update_attack_bitboards()
-    position.evaluate_king_check()
-
-    if position.king_in_check[position.color_to_move]:
-        return position.make_illegal_move_result("own king in check")
-
-    return position.make_move_result()
