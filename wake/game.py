@@ -99,7 +99,12 @@ class Game:
                     self.is_over = True
 
                 if move_result.is_stalemate:
-                    print("Stalemate")
+                    print("Stalemate (Draw)")
+                    self.score = [0.5, 0.5]
+                    self.is_over = True
+
+                if move_result.is_draw_claim_allowed:
+                    print("Draw")
                     self.score = [0.5, 0.5]
                     self.is_over = True
 

@@ -35,15 +35,9 @@ from wake.fen import generate_fen
 from wake.move import Move, MoveResult
 
 
-# 3-fold repetition
-# 50-move rule
 # De-dupe from board module
 # De-dupe evaluate_move function
-# Unit tests
-# Push FEN to the Game stack
 # Should we generate the move from the board?
-# Stalemate
-# No checkmating pieces draw - KNK, KBK
 
 
 class PositionState:
@@ -76,6 +70,7 @@ class PositionState:
         self.black_bishop_attacks = kwargs["black_bishop_attacks"]
         self.black_queen_attacks = kwargs["black_queen_attacks"]
         self.black_king_attacks = kwargs["black_king_attacks"]
+        self.position_history = kwargs["position_history"]
 
 
 class Position:
@@ -106,8 +101,11 @@ class Position:
         # [white, black] boolean king is in check
         self.king_in_check = [0, 0]
 
+        # Position history for 3-fold repetition detection
+        self.position_history = []
+
         self.set_initial_piece_locations()
-        self.sync_mailbox_from_piece_map()  # Initialize mailbox after piece_map is set
+        self.sync_mailbox_from_piece_map()  # Initialize mailbox after setting piece locations
 
         self.white_pawn_moves = make_uint64()
         self.white_pawn_attacks = make_uint64()
@@ -126,6 +124,24 @@ class Position:
         self.black_king_attacks = make_uint64()
 
     def set_initial_piece_locations(self):
+        # init all piece types with empty sets first
+        for piece_type in [
+            Piece.wP,
+            Piece.wR,
+            Piece.wN,
+            Piece.wB,
+            Piece.wQ,
+            Piece.wK,
+            Piece.bP,
+            Piece.bR,
+            Piece.bN,
+            Piece.bB,
+            Piece.bQ,
+            Piece.bK,
+        ]:
+            self.piece_map[piece_type] = set()
+
+        # Set initial piece positions
         self.piece_map[Piece.wP] = set([i for i in range(8, 16)])
         self.piece_map[Piece.wR] = {0, 7}
         self.piece_map[Piece.wN] = {1, 6}
@@ -238,7 +254,7 @@ class Position:
 
         if move.piece in {Piece.wP, Piece.bP}:
             self.halfmove_clock = 0
-        
+
         # update both piece_map and mailbox
         self.piece_map[move.piece].remove(move.from_sq)
         self.piece_map[move.piece].add(move.to_sq)
@@ -277,6 +293,26 @@ class Position:
             print("Checkmate")
             return self.make_checkmate_result()
 
+        if not self.king_in_check[other_player] and not self.any_legal_moves(
+            other_player
+        ):
+            print("Stalemate")
+            return self.make_stalemate_result()
+
+        # 50-move rule draw (50 moves by each player = 100 half-moves)
+        if self.halfmove_clock >= 100:
+            print("Draw by 50-move rule")
+            return self.make_draw_result()
+
+        if self.is_threefold_repetition():
+            print("Draw by 3-fold repetition")
+            return self.make_draw_result()
+
+        if self.is_insufficient_material():
+            print("Draw by insufficient material")
+            return self.make_draw_result()
+
+        self.position_history.append(generate_fen(self))
         self.color_to_move = not self.color_to_move
 
         return self.make_move_result()
@@ -289,7 +325,7 @@ class Position:
             if not legal_piece:
                 print("Please choose a legal piece")
                 continue
-            
+
             # Update both piece_map and mailbox
             self.piece_map[move.piece].remove(move.to_sq)
             new_piece = self.get_promotion_piece_type(legal_piece, move)
@@ -558,10 +594,10 @@ class Position:
             Square.G8: (Square.H8, Square.F8),
             Square.C8: (Square.A8, Square.D8),
         }
-        
+
         rook_piece = rook_color_map[move.color]
         from_sq, to_sq = square_map[move.to_sq]
-        
+
         # Update both piece_map and mailbox
         self.piece_map[rook_piece].remove(from_sq)
         self.piece_map[rook_piece].add(to_sq)
@@ -1334,13 +1370,113 @@ class Position:
         move_result.fen = generate_fen(self)
         return move_result
 
+    def make_stalemate_result(self) -> MoveResult:
+        move_result = MoveResult()
+        move_result.is_stalemate = True
+        move_result.fen = generate_fen(self)
+        return move_result
+
+    def make_draw_result(self) -> MoveResult:
+        move_result = MoveResult()
+        move_result.is_draw_claim_allowed = True
+        move_result.fen = generate_fen(self)
+        return move_result
+
+    def is_threefold_repetition(self) -> bool:
+        """
+        Check if the current position has occurred 3 times.
+        Returns True if 3-fold repetition has occurred.
+        """
+        current_fen = generate_fen(self)
+
+        # Count occurrences of current position in history
+        position_count = self.position_history.count(current_fen)
+
+        # If this position has occurred 2 times before, this would be the 3rd
+        return position_count >= 2
+
+    def is_insufficient_material(self) -> bool:
+        """
+        Check if there is insufficient material to continue the game.
+        Returns True if neither side has enough material to checkmate.
+        """
+        # Count pieces for each side
+        white_pieces = {
+            "pawns": len(self.piece_map.get(Piece.wP, set())),
+            "rooks": len(self.piece_map.get(Piece.wR, set())),
+            "knights": len(self.piece_map.get(Piece.wN, set())),
+            "bishops": len(self.piece_map.get(Piece.wB, set())),
+            "queens": len(self.piece_map.get(Piece.wQ, set())),
+            "kings": len(self.piece_map.get(Piece.wK, set())),
+        }
+
+        black_pieces = {
+            "pawns": len(self.piece_map.get(Piece.bP, set())),
+            "rooks": len(self.piece_map.get(Piece.bR, set())),
+            "knights": len(self.piece_map.get(Piece.bN, set())),
+            "bishops": len(self.piece_map.get(Piece.bB, set())),
+            "queens": len(self.piece_map.get(Piece.bQ, set())),
+            "kings": len(self.piece_map.get(Piece.bK, set())),
+        }
+
+        # If any side has pawns, rooks, or queens, there's sufficient material
+        if (
+            white_pieces["pawns"] > 0
+            or white_pieces["rooks"] > 0
+            or white_pieces["queens"] > 0
+            or black_pieces["pawns"] > 0
+            or black_pieces["rooks"] > 0
+            or black_pieces["queens"] > 0
+        ):
+            return False
+
+        # Count total minor pieces (knights + bishops) for each side
+        white_minor = white_pieces["knights"] + white_pieces["bishops"]
+        black_minor = black_pieces["knights"] + black_pieces["bishops"]
+
+        # King vs King
+        if white_minor == 0 and black_minor == 0:
+            return True
+
+        # King + minor piece vs King
+        if (white_minor <= 1 and black_minor == 0) or (
+            black_minor <= 1 and white_minor == 0
+        ):
+            return True
+
+        # King + Bishop vs King + Bishop (same color squares)
+        if (
+            white_pieces["bishops"] == 1
+            and white_pieces["knights"] == 0
+            and white_minor == 1
+            and black_pieces["bishops"] == 1
+            and black_pieces["knights"] == 0
+            and black_minor == 1
+        ):
+            # Check if bishops are on same color squares
+            white_bishop_squares = list(self.piece_map.get(Piece.wB, set()))
+            black_bishop_squares = list(self.piece_map.get(Piece.bB, set()))
+
+            if white_bishop_squares and black_bishop_squares:
+                # Check if both bishops are on same color squares (sum of coordinates is even/odd)
+                white_bishop_square = white_bishop_squares[0]
+                black_bishop_square = black_bishop_squares[0]
+
+                white_color = (white_bishop_square // 8 + white_bishop_square % 8) % 2
+                black_color = (black_bishop_square // 8 + black_bishop_square % 8) % 2
+
+                if white_color == black_color:
+                    return True
+
+        return False
+
     def get_piece_on_square(self, from_sq):
         """
         Returns the piece on the given square using O(1) mailbox lookup.
-        
+
         Args:
             from_sq: Square index (0-63)
-            
+
         Returns:
             Piece type or None if square is empty
         """
@@ -1371,8 +1507,11 @@ def evaluate_move(move, position: Position) -> MoveResult:
 
     if move.piece in {Piece.wP, Piece.bP}:
         position.halfmove_clock = 0
+    # update both piece_map and mailbox
     position.piece_map[move.piece].remove(move.from_sq)
     position.piece_map[move.piece].add(move.to_sq)
+    position.mailbox[move.from_sq] = None
+    position.mailbox[move.to_sq] = move.piece
 
     if move.is_promotion:
         position.promote_pawn(move)
@@ -1395,7 +1534,7 @@ def evaluate_move(move, position: Position) -> MoveResult:
     position.update_attack_bitboards()
     position.evaluate_king_check()
 
-    if position.king_in_check[not position.color_to_move]:
+    if position.king_in_check[position.color_to_move]:
         return position.make_illegal_move_result("own king in check")
 
     return position.make_move_result()
