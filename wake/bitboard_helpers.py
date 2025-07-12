@@ -206,7 +206,7 @@ def generate_knight_attack_bb_from_square(from_square: int) -> np.uint64:
     """
     attack_bb = make_uint64()
     for i in [6, 15, 17, 10, -6, -15, -17, -10]:
-        to_square = from_square + i
+        to_square = int(from_square) + i  # avoid uint64 overflow
         if not 0 <= to_square < 64:
             continue
 
@@ -463,7 +463,7 @@ def generate_king_attack_bb_from_square(from_square: int) -> np.uint64:
     """
     attack_bb = make_uint64()
     for i in [-1, -7, -8, -9, 1, 7, 8, 9]:
-        to_square = from_square + i
+        to_square = int(from_square) + i  # avoid uint64 overflow
         if not 0 <= to_square < 64:
             continue
         attack_bb |= HOT << np.uint64(to_square)
@@ -508,7 +508,7 @@ def generate_black_pawn_attack_bb_from_square(from_square: int) -> np.uint64:
     """
     attack_bb = make_uint64()
     for i in [-7, -9]:
-        to_square = from_square + i
+        to_square = int(from_square) + i  # avoid uint64 overflow
         if not 0 <= to_square < 64:
             continue
         attack_bb |= HOT << np.uint64(to_square)
@@ -540,9 +540,15 @@ def generate_black_pawn_motion_bb_from_square(from_square: int) -> np.uint64:
     :return: np.uint64 bitboard representation of black pawn motions on an otherwise empty board
     """
     motion_bb = make_uint64()
-    motion_bb |= HOT << np.uint64(from_square - 8)
+    # avoid uint64 overflow with negative numbers
+    move_target = int(from_square) - 8
+    if 0 <= move_target < 64:
+        motion_bb |= HOT << np.uint64(move_target)
+
     if from_square in Rank.x7:
-        motion_bb |= HOT << np.uint64(from_square - 16)
+        double_move_target = int(from_square) - 16
+        if 0 <= double_move_target < 64:
+            motion_bb |= HOT << np.uint64(double_move_target)
     return motion_bb
 
 
