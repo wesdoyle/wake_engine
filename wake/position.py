@@ -35,14 +35,9 @@ from wake.fen import generate_fen
 from wake.move import Move, MoveResult
 
 
-# 3-fold repetition
-# 50-move rule
 # De-dupe from board module
 # De-dupe evaluate_move function
-# Unit tests
-# Push FEN to the Game stack
 # Should we generate the move from the board?
-# No checkmating pieces draw - KNK, KBK
 
 
 class PositionState:
@@ -75,6 +70,7 @@ class PositionState:
         self.black_bishop_attacks = kwargs["black_bishop_attacks"]
         self.black_queen_attacks = kwargs["black_queen_attacks"]
         self.black_king_attacks = kwargs["black_king_attacks"]
+        self.position_history = kwargs["position_history"]
 
 
 class Position:
@@ -104,7 +100,13 @@ class Position:
         # [white, black] boolean king is in check
         self.king_in_check = [0, 0]
 
+        # Position history for 3-fold repetition detection
+        self.position_history = []
+
         self.set_initial_piece_locations()
+        
+        # Add initial position to history
+        self.position_history.append(generate_fen(self))
 
         self.white_pawn_moves = make_uint64()
         self.white_pawn_attacks = make_uint64()
@@ -264,6 +266,20 @@ class Position:
             print("Stalemate")
             return self.make_stalemate_result()
 
+        # 50-move rule draw (50 moves by each player = 100 half-moves)
+        if self.halfmove_clock >= 100:
+            print("Draw by 50-move rule")
+            return self.make_draw_result()
+
+        if self.is_threefold_repetition():
+            print("Draw by 3-fold repetition")
+            return self.make_draw_result()
+
+        if self.is_insufficient_material():
+            print("Draw by insufficient material")
+            return self.make_draw_result()
+
+        self.position_history.append(generate_fen(self))
         self.color_to_move = not self.color_to_move
 
         return self.make_move_result()
@@ -1319,6 +1335,86 @@ class Position:
         move_result.fen = generate_fen(self)
         return move_result
 
+    def make_draw_result(self) -> MoveResult:
+        move_result = MoveResult()
+        move_result.is_draw_claim_allowed = True
+        move_result.fen = generate_fen(self)
+        return move_result
+
+    def is_threefold_repetition(self) -> bool:
+        """
+        Check if the current position has occurred 3 times.
+        Returns True if 3-fold repetition has occurred.
+        """
+        current_fen = generate_fen(self)
+        
+        # Count occurrences of current position in history
+        position_count = self.position_history.count(current_fen)
+        
+        # If this position has occurred 2 times before, this would be the 3rd
+        return position_count >= 2
+
+    def is_insufficient_material(self) -> bool:
+        """
+        Check if there is insufficient material to continue the game.
+        Returns True if neither side has enough material to checkmate.
+        """
+        # Count pieces for each side
+        white_pieces = {
+            'pawns': len(self.piece_map.get(Piece.wP, set())),
+            'rooks': len(self.piece_map.get(Piece.wR, set())),
+            'knights': len(self.piece_map.get(Piece.wN, set())),
+            'bishops': len(self.piece_map.get(Piece.wB, set())),
+            'queens': len(self.piece_map.get(Piece.wQ, set())),
+            'kings': len(self.piece_map.get(Piece.wK, set()))
+        }
+        
+        black_pieces = {
+            'pawns': len(self.piece_map.get(Piece.bP, set())),
+            'rooks': len(self.piece_map.get(Piece.bR, set())),
+            'knights': len(self.piece_map.get(Piece.bN, set())),
+            'bishops': len(self.piece_map.get(Piece.bB, set())),
+            'queens': len(self.piece_map.get(Piece.bQ, set())),
+            'kings': len(self.piece_map.get(Piece.bK, set()))
+        }
+        
+        # If any side has pawns, rooks, or queens, there's sufficient material
+        if (white_pieces['pawns'] > 0 or white_pieces['rooks'] > 0 or white_pieces['queens'] > 0 or
+            black_pieces['pawns'] > 0 or black_pieces['rooks'] > 0 or black_pieces['queens'] > 0):
+            return False
+        
+        # Count total minor pieces (knights + bishops) for each side
+        white_minor = white_pieces['knights'] + white_pieces['bishops']
+        black_minor = black_pieces['knights'] + black_pieces['bishops']
+        
+        # King vs King
+        if white_minor == 0 and black_minor == 0:
+            return True
+        
+        # King + minor piece vs King
+        if (white_minor <= 1 and black_minor == 0) or (black_minor <= 1 and white_minor == 0):
+            return True
+        
+        # King + Bishop vs King + Bishop (same color squares)
+        if (white_pieces['bishops'] == 1 and white_pieces['knights'] == 0 and white_minor == 1 and
+            black_pieces['bishops'] == 1 and black_pieces['knights'] == 0 and black_minor == 1):
+            # Check if bishops are on same color squares
+            white_bishop_squares = list(self.piece_map.get(Piece.wB, set()))
+            black_bishop_squares = list(self.piece_map.get(Piece.bB, set()))
+            
+            if white_bishop_squares and black_bishop_squares:
+                # Check if both bishops are on same color squares (sum of coordinates is even/odd)
+                white_bishop_square = white_bishop_squares[0]
+                black_bishop_square = black_bishop_squares[0]
+                
+                white_color = (white_bishop_square // 8 + white_bishop_square % 8) % 2
+                black_color = (black_bishop_square // 8 + black_bishop_square % 8) % 2
+                
+                if white_color == black_color:
+                    return True
+        
+        return False
+
     def get_piece_on_square(self, from_sq):
         for k, v in self.piece_map.items():
             for square in v:
@@ -1373,7 +1469,7 @@ def evaluate_move(move, position: Position) -> MoveResult:
     position.update_attack_bitboards()
     position.evaluate_king_check()
 
-    if position.king_in_check[not position.color_to_move]:
+    if position.king_in_check[position.color_to_move]:
         return position.make_illegal_move_result("own king in check")
 
     return position.make_move_result()
