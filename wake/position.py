@@ -770,14 +770,6 @@ class Position:
                 return False
             return True
 
-    def is_wrong_color_piece(self, move):
-        # Note: Move instance calculates color from piece, so we must check Position state
-        if self.color_to_move == Color.WHITE and move.piece not in Piece.white_pieces:
-            return False
-
-        if self.color_to_move == Color.BLACK and move.piece not in Piece.black_pieces:
-            return False
-
     # -------------------------------------------------------------
     # PIECE MOVE LEGALITY CHECKING HELPERS
     # -------------------------------------------------------------
@@ -844,10 +836,11 @@ class Position:
         moving_to_square_bb = set_bit(make_uint64(), move.to_sq)
         if move.color == Color.WHITE:
             if not (self.white_rook_attacks & moving_to_square_bb):
-                return False
+                return True
         if move.color == Color.BLACK:
             if not (self.black_rook_attacks & moving_to_square_bb):
-                return False
+                return True
+        return False
 
     @staticmethod
     def is_castling(move):
@@ -1375,54 +1368,3 @@ def evaluate_move(move, position: Position) -> MoveResult:
         return position.make_illegal_move_result("own king in check")
 
     return position.make_move_result()
-
-
-def is_legal_move(self, move: Move) -> bool:
-    """
-    For a given move, returns True iff it is legal given the Position state
-    """
-    piece = move.piece
-
-    if self.is_capture(move):
-        move.is_capture = True
-
-    if piece in (Piece.wP, Piece.bP):
-        is_legal_pawn_move = self.is_legal_pawn_move(move)
-
-        if not is_legal_pawn_move:
-            return False
-
-        if self.is_promotion(move):
-            move.is_promotion = True
-            return True
-
-        en_passant_target = self.try_get_en_passant_target(move)
-
-        if en_passant_target:
-            self.en_passant_side = move.color
-            self.en_passant_target = int(en_passant_target)
-
-        if move.to_sq == self.en_passant_target:
-            self.is_en_passant_capture = True
-
-        return True
-
-    if piece in (Piece.wB, Piece.bB):
-        return self.is_legal_bishop_move(move)
-
-    if piece in (Piece.wR, Piece.bR):
-        return self.is_legal_rook_move(move)
-
-    if piece in (Piece.wN, Piece.bN):
-        return self.is_legal_knight_move(move)
-
-    if piece in (Piece.wQ, Piece.bQ):
-        return self.is_legal_queen_move(move)
-
-    if piece in (Piece.wK, Piece.bK):
-        is_legal_king_move = self.is_legal_king_move(move)
-        if not is_legal_king_move:
-            return False
-        if self.is_castling(move):
-            move.is_castling = True
-        return True
