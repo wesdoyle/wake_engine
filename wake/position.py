@@ -125,10 +125,22 @@ class Position:
 
     def set_initial_piece_locations(self):
         # init all piece types with empty sets first
-        for piece_type in [Piece.wP, Piece.wR, Piece.wN, Piece.wB, Piece.wQ, Piece.wK,
-                          Piece.bP, Piece.bR, Piece.bN, Piece.bB, Piece.bQ, Piece.bK]:
+        for piece_type in [
+            Piece.wP,
+            Piece.wR,
+            Piece.wN,
+            Piece.wB,
+            Piece.wQ,
+            Piece.wK,
+            Piece.bP,
+            Piece.bR,
+            Piece.bN,
+            Piece.bB,
+            Piece.bQ,
+            Piece.bK,
+        ]:
             self.piece_map[piece_type] = set()
-        
+
         # Set initial piece positions
         self.piece_map[Piece.wP] = set([i for i in range(8, 16)])
         self.piece_map[Piece.wR] = {0, 7}
@@ -242,7 +254,7 @@ class Position:
 
         if move.piece in {Piece.wP, Piece.bP}:
             self.halfmove_clock = 0
-        
+
         # update both piece_map and mailbox
         self.piece_map[move.piece].remove(move.from_sq)
         self.piece_map[move.piece].add(move.to_sq)
@@ -281,7 +293,9 @@ class Position:
             print("Checkmate")
             return self.make_checkmate_result()
 
-        if not self.king_in_check[other_player] and not self.any_legal_moves(other_player):
+        if not self.king_in_check[other_player] and not self.any_legal_moves(
+            other_player
+        ):
             print("Stalemate")
             return self.make_stalemate_result()
 
@@ -311,7 +325,7 @@ class Position:
             if not legal_piece:
                 print("Please choose a legal piece")
                 continue
-            
+
             # Update both piece_map and mailbox
             self.piece_map[move.piece].remove(move.to_sq)
             new_piece = self.get_promotion_piece_type(legal_piece, move)
@@ -580,10 +594,10 @@ class Position:
             Square.G8: (Square.H8, Square.F8),
             Square.C8: (Square.A8, Square.D8),
         }
-        
+
         rook_piece = rook_color_map[move.color]
         from_sq, to_sq = square_map[move.to_sq]
-        
+
         # Update both piece_map and mailbox
         self.piece_map[rook_piece].remove(from_sq)
         self.piece_map[rook_piece].add(to_sq)
@@ -1374,10 +1388,10 @@ class Position:
         Returns True if 3-fold repetition has occurred.
         """
         current_fen = generate_fen(self)
-        
+
         # Count occurrences of current position in history
         position_count = self.position_history.count(current_fen)
-        
+
         # If this position has occurred 2 times before, this would be the 3rd
         return position_count >= 2
 
@@ -1388,67 +1402,81 @@ class Position:
         """
         # Count pieces for each side
         white_pieces = {
-            'pawns': len(self.piece_map.get(Piece.wP, set())),
-            'rooks': len(self.piece_map.get(Piece.wR, set())),
-            'knights': len(self.piece_map.get(Piece.wN, set())),
-            'bishops': len(self.piece_map.get(Piece.wB, set())),
-            'queens': len(self.piece_map.get(Piece.wQ, set())),
-            'kings': len(self.piece_map.get(Piece.wK, set()))
+            "pawns": len(self.piece_map.get(Piece.wP, set())),
+            "rooks": len(self.piece_map.get(Piece.wR, set())),
+            "knights": len(self.piece_map.get(Piece.wN, set())),
+            "bishops": len(self.piece_map.get(Piece.wB, set())),
+            "queens": len(self.piece_map.get(Piece.wQ, set())),
+            "kings": len(self.piece_map.get(Piece.wK, set())),
         }
-        
+
         black_pieces = {
-            'pawns': len(self.piece_map.get(Piece.bP, set())),
-            'rooks': len(self.piece_map.get(Piece.bR, set())),
-            'knights': len(self.piece_map.get(Piece.bN, set())),
-            'bishops': len(self.piece_map.get(Piece.bB, set())),
-            'queens': len(self.piece_map.get(Piece.bQ, set())),
-            'kings': len(self.piece_map.get(Piece.bK, set()))
+            "pawns": len(self.piece_map.get(Piece.bP, set())),
+            "rooks": len(self.piece_map.get(Piece.bR, set())),
+            "knights": len(self.piece_map.get(Piece.bN, set())),
+            "bishops": len(self.piece_map.get(Piece.bB, set())),
+            "queens": len(self.piece_map.get(Piece.bQ, set())),
+            "kings": len(self.piece_map.get(Piece.bK, set())),
         }
-        
+
         # If any side has pawns, rooks, or queens, there's sufficient material
-        if (white_pieces['pawns'] > 0 or white_pieces['rooks'] > 0 or white_pieces['queens'] > 0 or
-            black_pieces['pawns'] > 0 or black_pieces['rooks'] > 0 or black_pieces['queens'] > 0):
+        if (
+            white_pieces["pawns"] > 0
+            or white_pieces["rooks"] > 0
+            or white_pieces["queens"] > 0
+            or black_pieces["pawns"] > 0
+            or black_pieces["rooks"] > 0
+            or black_pieces["queens"] > 0
+        ):
             return False
-        
+
         # Count total minor pieces (knights + bishops) for each side
-        white_minor = white_pieces['knights'] + white_pieces['bishops']
-        black_minor = black_pieces['knights'] + black_pieces['bishops']
-        
+        white_minor = white_pieces["knights"] + white_pieces["bishops"]
+        black_minor = black_pieces["knights"] + black_pieces["bishops"]
+
         # King vs King
         if white_minor == 0 and black_minor == 0:
             return True
-        
+
         # King + minor piece vs King
-        if (white_minor <= 1 and black_minor == 0) or (black_minor <= 1 and white_minor == 0):
+        if (white_minor <= 1 and black_minor == 0) or (
+            black_minor <= 1 and white_minor == 0
+        ):
             return True
-        
+
         # King + Bishop vs King + Bishop (same color squares)
-        if (white_pieces['bishops'] == 1 and white_pieces['knights'] == 0 and white_minor == 1 and
-            black_pieces['bishops'] == 1 and black_pieces['knights'] == 0 and black_minor == 1):
+        if (
+            white_pieces["bishops"] == 1
+            and white_pieces["knights"] == 0
+            and white_minor == 1
+            and black_pieces["bishops"] == 1
+            and black_pieces["knights"] == 0
+            and black_minor == 1
+        ):
             # Check if bishops are on same color squares
             white_bishop_squares = list(self.piece_map.get(Piece.wB, set()))
             black_bishop_squares = list(self.piece_map.get(Piece.bB, set()))
-            
+
             if white_bishop_squares and black_bishop_squares:
                 # Check if both bishops are on same color squares (sum of coordinates is even/odd)
                 white_bishop_square = white_bishop_squares[0]
                 black_bishop_square = black_bishop_squares[0]
-                
+
                 white_color = (white_bishop_square // 8 + white_bishop_square % 8) % 2
                 black_color = (black_bishop_square // 8 + black_bishop_square % 8) % 2
-                
+
                 if white_color == black_color:
                     return True
-        
+
         return False
 
     def get_piece_on_square(self, from_sq):
         """
         Returns the piece on the given square using O(1) mailbox lookup.
-        
+
         Args:
             from_sq: Square index (0-63)
-            
+
         Returns:
             Piece type or None if square is empty
         """
@@ -1479,7 +1507,7 @@ def evaluate_move(move, position: Position) -> MoveResult:
 
     if move.piece in {Piece.wP, Piece.bP}:
         position.halfmove_clock = 0
-    # update both piece_map and mailbox  
+    # update both piece_map and mailbox
     position.piece_map[move.piece].remove(move.from_sq)
     position.piece_map[move.piece].add(move.to_sq)
     position.mailbox[move.from_sq] = None
