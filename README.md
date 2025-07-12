@@ -10,14 +10,18 @@ The livestream series is in progress on YouTube, and it starts here: https://www
 
 ## Using the Engine
 
-The current version of Wake is run using Python 3.x from the terminal.
+The Wake chess engine now supports two modes:
+
+### 1. UCI Mode (Chess GUIs)
+
+Docs TBD
+
+### 2. Interactive Mode (Terminal)
+The original interactive mode for terminal play:
 
 - Clone the directory
-
 - `pip install -r requirements.txt` (this installs the single dependency, `numPy`)
-
 - `cd wake`
-
 - `python3 game.py`
 
 You will be presented with an output of the board in the shell:

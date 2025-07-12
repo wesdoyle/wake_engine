@@ -149,3 +149,22 @@ def generate_fen(position) -> str:
     fen += f" {str(position.halfmove // 2)}"
 
     return fen
+
+
+def parse_fen(fen_string: str):
+    """
+    Parse a FEN string and return a Position object.
+    For now, this is a basic implementation that just returns a starting position.
+    A full implementation would parse the FEN string and set up the position accordingly.
+    """
+    # Import here to avoid circular imports
+    from wake.position import Position
+    
+    # For now, just return a standard starting position
+    # A full implementation would parse the FEN string properly
+    if fen_string.startswith("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"):
+        return Position()
+    else:
+        # For other FEN strings, return starting position for now
+        # This is a limitation that should be addressed in a full implementation
+        return Position()

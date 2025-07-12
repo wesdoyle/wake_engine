@@ -62,9 +62,9 @@ class Game:
     def setup_human_vs_ai(self):
         """Setup human vs AI game: choose color and AI depth"""
         clear()
-        print("🏁 Welcome to Wake Chess Engine!")
+        print("Welcome to Wake Chess Engine!")
         print("=" * 50)
-        print("🤖 Human vs AI Mode")
+        print("Human vs AI Mode")
         print()
         
         # Color selection
@@ -73,15 +73,15 @@ class Game:
             if color_choice in ['w', 'white']:
                 self.human_color = Color.WHITE
                 self.ai_color = Color.BLACK
-                print(f"✅ You are playing as WHITE")
+                print(f"You are playing as WHITE")
                 break
             elif color_choice in ['b', 'black']:
                 self.human_color = Color.BLACK  
                 self.ai_color = Color.WHITE
-                print(f"✅ You are playing as BLACK")
+                print(f"You are playing as BLACK")
                 break
             else:
-                print("❌ Invalid choice. Please enter 'w' for white or 'b' for black.")
+                print("Invalid choice. Please enter 'w' for white or 'b' for black.")
                 
         print()
         
@@ -92,16 +92,16 @@ class Game:
                 depth = int(depth_choice)
                 if 1 <= depth <= 3:
                     self.ai_depth = depth
-                    print(f"✅ AI will search to depth {depth}")
+                    print(f"AI will search to depth {depth}")
                     break
                 else:
-                    print("❌ Depth must be between 1 and 3.")
+                    print("Depth must be between 1 and 3.")
             except ValueError:
-                print("❌ Please enter a valid number (1-3).")
+                print("Please enter a valid number (1-3).")
         
         print()
-        print("🎮 Game starting! Enter moves in UCI format (e.g., 'e2e4')")
-        print("📝 Type 'quit' to exit, 'moves' to see legal moves")
+        print("Game starting! Enter moves in UCI format (e.g., 'e2e4')")
+        print("Type 'quit' to exit, 'moves' to see legal moves")
         print()
         
         # Initialize AI engine
@@ -124,12 +124,12 @@ class Game:
     
     def display_game_state(self):
         """Display current board and game information"""
-        print("🏁 Wake Chess Engine - Human vs AI")
+        print("Wake Chess Engine - Human vs AI")
         print("=" * 50)
         print()
         
         # Show whose turn it is
-        current_player = "👤 Your turn" if self.position.color_to_move == self.human_color else "🤖 AI thinking..."
+        current_player = "Your turn" if self.position.color_to_move == self.human_color else "AI thinking..."
         color_name = "White" if self.position.color_to_move == Color.WHITE else "Black"
         print(f"{current_player} ({color_name})")
         print()
@@ -140,14 +140,14 @@ class Game:
         
         # Show game statistics
         legal_moves = self.position.generate_legal_moves()
-        print(f"📊 Legal moves available: {len(legal_moves)}")
+        print(f"Legal moves available: {len(legal_moves)}")
         
         # Show position evaluation
         try:
             from wake.ai.evaluation import evaluate_position
             evaluation = evaluate_position(self.position)
             eval_display = f"{evaluation/100:+.2f}"
-            print(f"📈 Position evaluation: {eval_display} (White's perspective)")
+            print(f"Position evaluation: {eval_display} (White's perspective)")
         except:
             pass
         
@@ -156,10 +156,10 @@ class Game:
     def handle_human_turn(self):
         """Handle human player input"""
         while True:
-            move_input = input("🎯 Enter your move (or 'quit'/'moves'): ").strip().lower()
+            move_input = input("Enter your move (or 'quit'/'moves'): ").strip().lower()
             
             if move_input == 'quit':
-                print("👋 Thanks for playing!")
+                print("Thanks for playing!")
                 self.is_over = True
                 return
                 
@@ -170,28 +170,28 @@ class Game:
             # Try to parse and make the move
             move, error_msg = self.try_parse_move(move_input)
             if not move:
-                print(f"❌ {error_msg}")
+                print(f"{error_msg}")
                 continue
                 
             move_result = self.position.make_move(move)
             
             if move_result.is_illegal_move:
-                print(f"❌ Illegal move: {move_input}")
+                print(f"Illegal move: {move_input}")
                 continue
                 
             # Move was successful
-            print(f"✅ You played: {move_input}")
+            print(f"You played: {move_input}")
             self.check_game_over(move_result)
             break
     
     def handle_ai_turn(self):
         """Handle AI move with debugging output"""
-        print("🤖 AI is thinking...")
+        print("AI is thinking...")
         print()
         
         # Show AI analysis
         legal_moves = self.position.generate_legal_moves()
-        print(f"🔍 AI analyzing {len(legal_moves)} candidate moves:")
+        print(f"AI analyzing {len(legal_moves)} candidate moves:")
         
         # Show some top candidate moves (first 5)
         print("   Top candidate moves:")
@@ -206,32 +206,32 @@ class Game:
         print()
         
         # Get AI decision
-        print(f"🧠 AI searching to depth {self.ai_depth}...")
+        print(f"AI searching to depth {self.ai_depth}...")
         result = self.ai_engine.get_best_move(self.position, depth=self.ai_depth)
         
         if not result.best_move:
-            print("❌ AI couldn't find a move!")
+            print("AI couldn't find a move!")
             self.is_over = True
             return
             
         # Show AI analysis results
-        print("📊 AI Analysis Complete:")
-        print(f"   🎯 Best move: {self.format_move(result.best_move)}")
-        print(f"   📈 Evaluation: {result.evaluation/100:+.2f}")
-        print(f"   🔢 Nodes searched: {result.nodes_searched:,}")
-        print(f"   ⏱️  Time taken: {result.time_taken:.3f}s")
-        print(f"   ⚡ Nodes/sec: {result.nodes_searched/result.time_taken:,.0f}")
+        print("AI Analysis Complete:")
+        print(f"   Best move: {self.format_move(result.best_move)}")
+        print(f"   Evaluation: {result.evaluation/100:+.2f}")
+        print(f"   Nodes searched: {result.nodes_searched:,}")
+        print(f"   Time taken: {result.time_taken:.3f}s")
+        print(f"   Nodes/sec: {result.nodes_searched/result.time_taken:,.0f}")
         print()
         
         # Make the AI move
         move_result = self.position.make_move(result.best_move)
         
         if move_result.is_illegal_move:
-            print("❌ AI tried to make an illegal move!")
+            print("AI tried to make an illegal move!")
             self.is_over = True
             return
             
-        print(f"✅ AI played: {self.format_move(result.best_move)}")
+        print(f"AI played: {self.format_move(result.best_move)}")
         self.check_game_over(move_result)
         
         input("\nPress Enter to continue...")
@@ -258,7 +258,7 @@ class Game:
     def show_legal_moves(self):
         """Display all legal moves for the current player"""
         legal_moves = self.position.generate_legal_moves()
-        print(f"\n📋 Legal moves ({len(legal_moves)} total):")
+        print(f"\nLegal moves ({len(legal_moves)} total):")
         
         moves_per_line = 6
         for i, move in enumerate(legal_moves):
@@ -279,15 +279,15 @@ class Game:
         """Check if the game has ended"""
         if move_result.is_checkmate:
             winner = "You win!" if self.position.color_to_move != self.human_color else "AI wins!"
-            print(f"🏆 Checkmate! {winner}")
+            print(f"Checkmate! {winner}")
             self.is_over = True
             
         elif move_result.is_stalemate:
-            print("🤝 Stalemate - Draw!")
+            print("Stalemate - Draw!")
             self.is_over = True
             
         elif move_result.is_draw_claim_allowed:
-            print("🤝 Draw!")
+            print("Draw!")
             self.is_over = True
 
     def run_uci_mode(self):
@@ -371,7 +371,7 @@ def run_simple_human_vs_ai():
 
 if __name__ == "__main__":
     clear()
-    print("🏁 Welcome to Wake Chess Engine!")
+    print("Welcome to Wake Chess Engine!")
     print("=" * 50)
     print("Choose your interface mode:")
     print("1. Human vs AI (Interactive)")
@@ -410,4 +410,4 @@ if __name__ == "__main__":
                         sys.exit(0)
             break
         else:
-            print("❌ Invalid choice. Please enter 1 or 2.")
+            print("Invalid choice. Please enter 1 or 2.")
