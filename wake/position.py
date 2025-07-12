@@ -85,6 +85,7 @@ class Position:
             self.board = board
 
         self.piece_map = {}
+        self.mailbox = [None] * 64  # Mailbox array for O(1) piece lookup
 
         self.color_to_move = Color.WHITE
 
@@ -104,9 +105,7 @@ class Position:
         self.position_history = []
 
         self.set_initial_piece_locations()
-        
-        # Add initial position to history
-        self.position_history.append(generate_fen(self))
+        self.sync_mailbox_from_piece_map()  # Initialize mailbox after setting piece locations
 
         self.white_pawn_moves = make_uint64()
         self.white_pawn_attacks = make_uint64()
@@ -125,6 +124,12 @@ class Position:
         self.black_king_attacks = make_uint64()
 
     def set_initial_piece_locations(self):
+        # init all piece types with empty sets first
+        for piece_type in [Piece.wP, Piece.wR, Piece.wN, Piece.wB, Piece.wQ, Piece.wK,
+                          Piece.bP, Piece.bR, Piece.bN, Piece.bB, Piece.bQ, Piece.bK]:
+            self.piece_map[piece_type] = set()
+        
+        # Set initial piece positions
         self.piece_map[Piece.wP] = set([i for i in range(8, 16)])
         self.piece_map[Piece.wR] = {0, 7}
         self.piece_map[Piece.wN] = {1, 6}
@@ -138,6 +143,16 @@ class Position:
         self.piece_map[Piece.bB] = {58, 61}
         self.piece_map[Piece.bQ] = {59}
         self.piece_map[Piece.bK] = {60}
+
+    def sync_mailbox_from_piece_map(self):
+        """
+        Synchronizes the mailbox array with the current piece_map state.
+        This provides O(1) piece lookup by square index.
+        """
+        self.mailbox = [None] * 64
+        for piece, squares in self.piece_map.items():
+            for square in squares:
+                self.mailbox[square] = piece
 
     def reset_state_to(self, memento: PositionState) -> None:
         for k, v in memento.__dict__.items():
@@ -227,8 +242,12 @@ class Position:
 
         if move.piece in {Piece.wP, Piece.bP}:
             self.halfmove_clock = 0
+        
+        # update both piece_map and mailbox
         self.piece_map[move.piece].remove(move.from_sq)
         self.piece_map[move.piece].add(move.to_sq)
+        self.mailbox[move.from_sq] = None
+        self.mailbox[move.to_sq] = move.piece
 
         if move.is_promotion:
             self.promote_pawn(move)
@@ -292,9 +311,12 @@ class Position:
             if not legal_piece:
                 print("Please choose a legal piece")
                 continue
+            
+            # Update both piece_map and mailbox
             self.piece_map[move.piece].remove(move.to_sq)
             new_piece = self.get_promotion_piece_type(legal_piece, move)
             self.piece_map[new_piece].add(move.to_sq)
+            self.mailbox[move.to_sq] = new_piece
             break
 
     def any_legal_moves(self, color_to_move):
@@ -474,12 +496,10 @@ class Position:
         return False
 
     def remove_opponent_piece_from_square(self, to_sq):
-        target = None
-        for k, v in self.piece_map.items():
-            if to_sq in v:
-                target = k
-                break
-        self.piece_map[target].remove(to_sq)
+        target = self.mailbox[to_sq]
+        if target is not None:
+            self.piece_map[target].remove(to_sq)
+            self.mailbox[to_sq] = None
 
     def update_attack_bitboards(self):
         self.reset_attack_bitboards()
@@ -560,8 +580,15 @@ class Position:
             Square.G8: (Square.H8, Square.F8),
             Square.C8: (Square.A8, Square.D8),
         }
-        self.piece_map[rook_color_map[move.color]].remove(square_map[move.to_sq][0])
-        self.piece_map[rook_color_map[move.color]].add(square_map[move.to_sq][1])
+        
+        rook_piece = rook_color_map[move.color]
+        from_sq, to_sq = square_map[move.to_sq]
+        
+        # Update both piece_map and mailbox
+        self.piece_map[rook_piece].remove(from_sq)
+        self.piece_map[rook_piece].add(to_sq)
+        self.mailbox[from_sq] = None
+        self.mailbox[to_sq] = rook_piece
 
     def reset_attack_bitboards(self):
         self.white_rook_attacks = make_uint64()
@@ -1416,10 +1443,17 @@ class Position:
         return False
 
     def get_piece_on_square(self, from_sq):
-        for k, v in self.piece_map.items():
-            for square in v:
-                if square == from_sq:
-                    return k
+        """
+        Returns the piece on the given square using O(1) mailbox lookup.
+        
+        Args:
+            from_sq: Square index (0-63)
+            
+        Returns:
+            Piece type or None if square is empty
+        """
+        if 0 <= from_sq < 64:
+            return self.mailbox[from_sq]
         return None
 
 
@@ -1445,8 +1479,11 @@ def evaluate_move(move, position: Position) -> MoveResult:
 
     if move.piece in {Piece.wP, Piece.bP}:
         position.halfmove_clock = 0
+    # update both piece_map and mailbox  
     position.piece_map[move.piece].remove(move.from_sq)
     position.piece_map[move.piece].add(move.to_sq)
+    position.mailbox[move.from_sq] = None
+    position.mailbox[move.to_sq] = move.piece
 
     if move.is_promotion:
         position.promote_pawn(move)

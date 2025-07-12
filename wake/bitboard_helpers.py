@@ -237,7 +237,6 @@ def get_south_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
         if from_square < 8:  # Can't go further south
             break
         from_square -= 8
-
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
@@ -255,7 +254,6 @@ def get_north_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
         if from_square >= 56:  # Can't go further north (rank 8)
             break
         from_square += 8
-
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
