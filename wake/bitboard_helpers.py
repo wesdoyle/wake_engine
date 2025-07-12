@@ -219,14 +219,11 @@ def get_south_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the southern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
-    current_square = from_square
-    
-    while current_square >= 0:
-        bitboard |= set_bit(bitboard, current_square)
-        if current_square < 8:  # Would go negative on next iteration
+    while 0 <= from_square < 64:
+        bitboard |= HOT << np.uint64(from_square)
+        if from_square < 8:  # Can't go further south
             break
-        current_square -= 8
-    
+        from_square -= 8
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
@@ -239,14 +236,11 @@ def get_north_ray(bitboard: np.uint64, from_square: int) -> np.uint64:
     :return: np.uint64 bitboard of the northern squares attacked on an otherwise empty board
     """
     original_from_square = from_square
-    current_square = from_square
-    
-    while current_square < 64:
-        bitboard |= set_bit(bitboard, current_square)
-        if current_square >= 56:  # Would go >= 64 on next iteration
+    while 0 <= from_square < 64:
+        bitboard |= HOT << np.uint64(from_square)
+        if from_square >= 56:  # Can't go further north (rank 8)
             break
-        current_square += 8
-    
+        from_square += 8
     bitboard = clear_bit(bitboard, original_from_square)
     return bitboard
 
